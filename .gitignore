@@ -1,0 +1,8 @@
+.env
+node_modules/
+*.log
+err.txt
+diagnose/
+test_headers.txt
+n8n_headers.txt
+.DS_Store

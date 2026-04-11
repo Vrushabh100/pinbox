@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Inbox Viewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .inbox-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      padding: 24px 28px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+    }
+
+    .inbox-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #3ecf8e, #6ee7b7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .inbox-header h1 .icon {
+      font-size: 28px;
+      -webkit-text-fill-color: initial;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #3ecf8e, #2b825b);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      flex: 1;
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-card .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .stat-card .value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-card .value.green { color: #3ecf8e; }
+    .stat-card .value.blue { color: #60a5fa; }
+    .stat-card .value.purple { color: #a78bfa; }
+
+    /* Email card */
+    .email-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(20px);
+    }
+
+    .email-card:hover {
+      border-color: rgba(62, 207, 142, 0.3);
+      box-shadow: 0 8px 32px rgba(62, 207, 142, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .email-card-header {
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sender-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3ecf8e, #2b825b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(62, 207, 142, 0.25);
+    }
+
+    .email-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .email-from {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .email-from .address {
+      font-weight: 400;
+      color: #888;
+      font-size: 13px;
+      margin-left: 6px;
+    }
+
+    .email-subject {
+      font-size: 14px;
+      font-weight: 500;
+      color: #c0c0c0;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .email-tags {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .tag.spf-pass {
+      background: rgba(62, 207, 142, 0.15);
+      color: #3ecf8e;
+      border: 1px solid rgba(62, 207, 142, 0.2);
+    }
+
+    .tag.dkim-none {
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+
+    .tag.namespace {
+      background: rgba(96, 165, 250, 0.12);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .email-date {
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .email-date .time {
+      display: block;
+      margin-top: 2px;
+      color: #555;
+    }
+
+    /* Expand indicator */
+    .expand-icon {
+      display: inline-block;
+      transition: transform 0.3s ease;
+      color: #555;
+      font-size: 18px;
+      margin-top: 4px;
+    }
+
+    .email-card.expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Email body */
+    .email-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+
+    .email-card.expanded .email-body {
+      max-height: 2000px;
+    }
+
+    .email-body-inner {
+      padding: 0 24px 24px;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      margin-bottom: 20px;
+    }
+
+    /* Detail rows */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .detail-item {
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .detail-item .detail-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .detail-item .detail-value {
+      font-size: 13px;
+      color: #ccc;
+      word-break: break-all;
+    }
+
+    /* HTML Preview */
+    .html-preview-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #666;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .html-preview {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .html-preview iframe {
+      width: 100%;
+      height: 450px;
+      border: none;
+      display: block;
+    }
+
+    /* Action buttons */
+    .email-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .action-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: #ccc;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .action-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, #3ecf8e, #2b825b);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .action-btn.primary:hover {
+      box-shadow: 0 4px 16px rgba(62, 207, 142, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .stats-bar { flex-direction: column; }
+      .email-card-header { flex-direction: column; }
+      .email-date { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="inbox-header">
+    <h1><span class="icon">📬</span> Email Inbox</h1>
+    <span class="badge">2 Emails</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="label">Total Emails</div>
+      <div class="value green">2</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Namespace</div>
+      <div class="value blue">v6qsu</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">SPF Status</div>
+      <div class="value green">Pass ✓</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Source</div>
+      <div class="value purple">Supabase</div>
+    </div>
+  </div>
+
+  <!-- Email list rendered by JS -->
+  <div id="email-list"></div>
+</div>
+
+<script>
+const emailData = {
+  "result": "success",
+  "count": 2,
+  "limit": 10,
+  "offset": 0,
+  "emails": [
+    {
+      "cc": "",
+      "date": 1774982108000,
+      "dkim": "none",
+      "envelope_to": "v6qsu.supabase@inbox.testmail.app",
+      "subject": "Confirm your email and launch your projects on Supabase!",
+      "SPF": "pass",
+      "messageId": "<6065db8f-900c-400b-82e1-336e677dd9d7@mtasv.net>",
+      "to": "v6qsu.supabase@inbox.testmail.app",
+      "envelope_from": "pm_bounces@pm-bounces.supabase.com",
+      "namespace": "v6qsu",
+      "from": "Supabase <welcome@supabase.com>",
+      "tag": "supabase",
+      "id": "60403-v6qsu-gvP1uCcFdrbMzkPJ81hmfb",
+      "from_parsed": [{ "address": "welcome@supabase.com", "name": "Supabase" }],
+      "timestamp": 1774982108778,
+      "html": `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title></title><style type="text/css">body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#fff;color:#687076}</style></head><body style="margin:0;padding:0;background:#fff;color:#687076;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#fff"><tr><td align="center"><table width="570" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="padding:15px"><a href="https://supabase.com/"><img src="https://obuldanrptloktxcffvn.supabase.co/storage/v1/object/public/supabase-brand-assets/logos/supabase-logo-icon.png" width="40" height="40" style="border:none;height:40px"></a></td></tr></table><table width="570" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="padding:15px"><h1 style="margin:0;color:#1C1C1C;font-size:22px;font-weight:600">Confirm your email address<br>to start building with Supabase</h1><br><p style="margin:0.4em 0 1.1875em;font-size:16px;line-height:1.625;color:#687076">You can start building with Supabase right away once you've confirmed that v6qsu.supabase@inbox.testmail.app is your email. Click the button below to confirm.</p><div style="margin:30px 0"><a href="#" style="color:#fff;background:#2B825B;border:1px solid #2B825B;padding:8px 12px;display:inline-block;font-size:14px;text-decoration:none;border-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.22)">Confirm Email Address</a></div><p style="margin:0.4em 0 1.1875em;font-size:16px;line-height:1.625;color:#687076">If you didn't request for this, you can safely ignore this email.</p></td></tr></table><table width="570" cellpadding="0" cellspacing="0" style="margin:0 auto;text-align:center"><tr><td style="padding:15px"><p style="font-size:13px;color:#A8AAAF;text-align:left">Supabase Inc, 3500 S. DuPont Highway, Kent 19901, Dover, Delaware, USA</p></td></tr></table></td></tr></table></body></html>`
+    },
+    {
+      "cc": "",
+      "date": 1774981285000,
+      "dkim": "none",
+      "envelope_to": "v6qsu.supabase@inbox.testmail.app",
+      "subject": "Confirm your email and launch your projects on Supabase!",
+      "SPF": "pass",
+      "messageId": "<d5d5cc6a-5261-42a7-82c6-8d9cbeef783d@mtasv.net>",
+      "to": "v6qsu.supabase@inbox.testmail.app",
+      "envelope_from": "pm_bounces@pm-bounces.supabase.com",
+      "namespace": "v6qsu",
+      "from": "Supabase <welcome@supabase.com>",
+      "tag": "supabase",
+      "id": "60403-v6qsu-qkGnW7NZs9nJnbJ2P5gKzS",
+      "from_parsed": [{ "address": "welcome@supabase.com", "name": "Supabase" }],
+      "timestamp": 1774981286498,
+      "html": `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title></title><style type="text/css">body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#fff;color:#687076}</style></head><body style="margin:0;padding:0;background:#fff;color:#687076;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#fff"><tr><td align="center"><table width="570" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="padding:15px"><a href="https://supabase.com/"><img src="https://obuldanrptloktxcffvn.supabase.co/storage/v1/object/public/supabase-brand-assets/logos/supabase-logo-icon.png" width="40" height="40" style="border:none;height:40px"></a></td></tr></table><table width="570" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="padding:15px"><h1 style="margin:0;color:#1C1C1C;font-size:22px;font-weight:600">Confirm your email address<br>to start building with Supabase</h1><br><p style="margin:0.4em 0 1.1875em;font-size:16px;line-height:1.625;color:#687076">You can start building with Supabase right away once you've confirmed that v6qsu.supabase@inbox.testmail.app is your email. Click the button below to confirm.</p><div style="margin:30px 0"><a href="#" style="color:#fff;background:#2B825B;border:1px solid #2B825B;padding:8px 12px;display:inline-block;font-size:14px;text-decoration:none;border-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.22)">Confirm Email Address</a></div><p style="margin:0.4em 0 1.1875em;font-size:16px;line-height:1.625;color:#687076">If you didn't request for this, you can safely ignore this email.</p></td></tr></table><table width="570" cellpadding="0" cellspacing="0" style="margin:0 auto;text-align:center"><tr><td style="padding:15px"><p style="font-size:13px;color:#A8AAAF;text-align:left">Supabase Inc, 3500 S. DuPont Highway, Kent 19901, Dover, Delaware, USA</p></td></tr></table></td></tr></table></body></html>`
+    }
+  ]
+};
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function toggleEmail(card) {
+  card.classList.toggle('expanded');
+}
+
+function renderEmails() {
+  const list = document.getElementById('email-list');
+
+  emailData.emails.forEach((email, index) => {
+    const senderName = email.from_parsed[0].name || 'Unknown';
+    const senderAddr = email.from_parsed[0].address;
+
+    const card = document.createElement('div');
+    card.className = 'email-card';
+
+    card.innerHTML = `
+      <div class="email-card-header" onclick="toggleEmail(this.parentElement)">
+        <div class="sender-avatar">${getInitials(senderName)}</div>
+        <div class="email-meta">
+          <div class="email-from">
+            ${senderName}
+            <span class="address">&lt;${senderAddr}&gt;</span>
+          </div>
+          <div class="email-subject">${email.subject}</div>
+          <div class="email-tags">
+            <span class="tag spf-pass">SPF: ${email.SPF}</span>
+            <span class="tag dkim-none">DKIM: ${email.dkim}</span>
+            <span class="tag namespace">ns: ${email.namespace}</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="email-date">
+            ${formatDate(email.date)}
+            <span class="time">${formatTime(email.date)}</span>
+          </div>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+
+      <div class="email-body">
+        <div class="email-body-inner">
+          <div class="divider"></div>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <div class="detail-label">To</div>
+              <div class="detail-value">${email.to}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Envelope From</div>
+              <div class="detail-value">${email.envelope_from}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Message ID</div>
+              <div class="detail-value">${email.messageId}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Email ID</div>
+              <div class="detail-value">${email.id}</div>
+            </div>
+          </div>
+
+          <div class="html-preview-label">📧 Email Preview</div>
+          <div class="html-preview">
+            <iframe id="email-frame-${index}" sandbox="allow-same-origin"></iframe>
+          </div>
+
+          <div class="email-actions">
+            <button class="action-btn primary" onclick="window.open('${email.html.match(/href="(https:\/\/auth\.supabase[^"]+)"/)?.[1] || '#'}', '_blank')">🔗 Open Confirm Link</button>
+            <button class="action-btn" onclick="copyToClipboard('${email.id}')">📋 Copy ID</button>
+            <button class="action-btn" onclick="viewSource(${index})">{ } View Source</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    list.appendChild(card);
+
+    // Inject HTML into iframe after DOM is ready
+    setTimeout(() => {
+      const iframe = document.getElementById(`email-frame-${index}`);
+      if (iframe) {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(email.html);
+        doc.close();
+      }
+    }, 100);
+  });
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function viewSource(index) {
+  const email = emailData.emails[index];
+  const w = window.open('', '_blank');
+  w.document.write(`<pre style="background:#1a1a2e;color:#3ecf8e;padding:20px;font-size:13px;white-space:pre-wrap;word-break:break-all">${JSON.stringify(email, null, 2)}</pre>`);
+}
+
+renderEmails();
+</script>
+
+</body>
+</html>

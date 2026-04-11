@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TempMail — Instant Temporary Email</title>
+  <meta name="description" content="Generate temporary email addresses instantly. Receive OTPs, verification links, and emails without using your real email.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      /* Absolute Luxe Palette */
+      --bg: #000000;
+      --surface: #0a0a0a;
+      --border: #1a1a1a;
+      --border-light: #2a2a2a;
+      
+      --text: #ffffff;
+      --text-dim: #888888;
+      --text-muted: #555555;
+      
+      --accent: #ffffff; /* High contrast white focus */
+      --accent-alt: #10b981; /* Precise Emerald */
+      
+      --radius: 0px; /* Sharp Gucci corners */
+      --radius-sm: 0px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Layout Containers */
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px 100px;
+    }
+
+    /* ========== NAVIGATION ========== */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 80px;
+    }
+    .nav-logo {
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nav-links {
+      display: flex; gap: 30px;
+    }
+    .nav-link {
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: color 0.2s;
+      text-decoration: none;
+    }
+    .nav-link:hover { color: #fff; border-bottom: 1px solid #fff; padding-bottom: 2px; }
+
+    /* ========== HERO SECTION ========== */
+    .hero {
+      text-align: center;
+      margin-bottom: 100px;
+      padding-top: 40px;
+    }
+    .hero h1 {
+      font-size: clamp(48px, 8vw, 100px);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -3px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--text-dim);
+      font-weight: 400;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ========== PRODUCT SECTIONS ========== */
+    .section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+      font-weight: 700;
+    }
+
+    /* ========== BUTTONS ========== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 16px 40px;
+      border: 1px solid #fff;
+      background: #fff; color: #000;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { background: #000; color: #fff; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn-outline {
+      background: transparent; color: #fff;
+    }
+    .btn-outline:hover { background: #fff; color: #000; }
+
+    .btn-sm { padding: 10px 24px; font-size: 11px; }
+
+    .btn-danger {
+      background: transparent; color: var(--danger); border-color: var(--danger);
+    }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+
+
+    /* ========== EMAIL DISPLAY ========== */
+    .email-display {
+      display: none;
+      margin-top: 28px;
+      padding: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .email-display.active { display: block; animation: fadeUp 0.4s ease; }
+
+    .email-address-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .email-address {
+      font-size: 20px; font-weight: 700; color: var(--accent);
+      letter-spacing: 0.3px;
+      word-break: break-all;
+    }
+    .copy-btn {
+      padding: 6px 14px; border-radius: 6px;
+      background: rgba(62,207,142,0.12);
+      border: 1px solid rgba(62,207,142,0.2);
+      color: var(--accent); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      font-family: inherit;
+    }
+    .copy-btn:hover { background: rgba(62,207,142,0.25); }
+
+    .email-meta-row {
+      display: flex; justify-content: center; gap: 20px;
+      margin-top: 12px; flex-wrap: wrap;
+    }
+    .meta-item {
+      font-size: 12px; color: var(--text-dim);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .meta-item .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      display: inline-block; animation: pulse 1.5s infinite;
+    }
+    .dot.green { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+    /* ========== STATS BAR ========== */
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .stat {
+      padding: 14px; text-align: center;
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dimmer); }
+    .stat .value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+    .stat .value.green { color: var(--accent); }
+    .stat .value.blue { color: var(--blue); }
+    .stat .value.purple { color: var(--purple); }
+    .stat .value.warn { color: var(--warn); }
+
+    /* ========== OTP BANNER ========== */
+    .otp-banner {
+      display: none;
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(96,165,250,0.08));
+      border: 1px solid rgba(62,207,142,0.25);
+      border-radius: var(--radius);
+      text-align: center;
+      animation: fadeUp 0.4s ease;
+    }
+    .otp-banner.active { display: block; }
+    .otp-banner .otp-label {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--accent); font-weight: 600; margin-bottom: 8px;
+    }
+    .otp-banner .otp-code {
+      font-size: 42px; font-weight: 900; color: #fff;
+      letter-spacing: 12px; font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 30px var(--accent-glow);
+    }
+    .otp-banner .otp-actions { margin-top: 12px; }
+
+    /* ========== INBOX ========== */
+    .inbox-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .inbox-header h3 { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .inbox-count {
+      background: var(--accent);
+      color: #000; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px;
+    }
+    .refresh-indicator {
+      font-size: 11px; color: var(--text-dimmer);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .refresh-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); animation: pulse 1.5s infinite;
+    }
+
+    /* Email list */
+    .email-list { display: flex; flex-direction: column; gap: 8px; }
+    .email-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .email-item:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border-hover);
+      transform: translateX(4px);
+    }
+    .email-item.unread { border-left: 3px solid var(--accent); }
+    .email-item .avatar {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .email-item .email-info { flex: 1; min-width: 0; }
+    .email-item .from { font-size: 14px; font-weight: 600; color: #fff; }
+    .email-item .subject { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .email-item .time { font-size: 11px; color: var(--text-dimmer); flex-shrink: 0; }
+
+    .has-otp-badge {
+      background: rgba(62,207,142,0.15);
+      color: var(--accent);
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    /* Empty state */
+    .empty-inbox {
+      text-align: center; padding: 60px 20px;
+    }
+    .empty-inbox .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-inbox h4 { color: #fff; font-size: 16px; margin-bottom: 6px; }
+    .empty-inbox p { color: var(--text-dimmer); font-size: 13px; }
+    .waiting-dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
+
+    /* ========== EMAIL DETAIL VIEW ========== */
+    .email-detail {
+      display: none;
+    }
+    .email-detail.active { display: block; animation: fadeUp 0.3s ease; }
+
+    .detail-top-bar {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .back-btn {
+      padding: 8px 14px; border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+      font-family: inherit;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .detail-meta {
+      display: grid; grid-template-columns: 1fr; gap: 20px;
+    }
+    .detail-meta-item {
+      padding: 0;
+      border: none;
+    }
+    .detail-meta-item .dm-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 700; }
+    .detail-meta-item .dm-value { font-size: 15px; color: var(--text); padding-top: 4px; }
+
+    .detail-otp-extract {
+      padding: 16px; text-align: center;
+      background: linear-gradient(135deg, rgba(62,207,142,0.06), rgba(96,165,250,0.06));
+      border: 1px dashed rgba(62,207,142,0.3);
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .detail-otp-extract .extracted-code {
+      font-size: 36px; font-weight: 900; color: var(--accent);
+      letter-spacing: 10px; margin: 8px 0;
+    }
+
+    .html-preview {
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+    .html-preview iframe {
+      width: 100%; min-height: 500px; border: none; display: block;
+    }
+    .text-preview {
+      padding: 16px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-dim);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ========== PROVIDER BADGE ========== */
+    .provider-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      background: rgba(167,139,250,0.12);
+      color: var(--purple);
+      border: 1px solid rgba(167,139,250,0.2);
+    }
+
+    /* ========== LOADING SPINNER ========== */
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    .spinner-sm { width: 14px; height: 14px; border-width: 2px; }
+
+    /* ========== TOAST ========== */
+    .toast-container {
+      position: fixed; top: 40px; right: 40px;
+      z-index: 1000; display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      padding: 18px 32px;
+      background: #fff; color: #000;
+      font-size: 11px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 1.5px;
+      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex; align-items: center; gap: 15px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .toast i { width: 14px; height: 14px; }
+
+    /* ========== ANIMATIONS ========== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(50px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 20px var(--accent-glow); }
+      50% { box-shadow: 0 0 40px var(--accent-glow), 0 0 60px rgba(62,207,142,0.08); }
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .detail-meta { grid-template-columns: 1fr; }
+      .email-address { font-size: 16px; }
+      .otp-banner .otp-code { font-size: 32px; letter-spacing: 8px; }
+      .logo { font-size: 30px; }
+    }
+
+    /* ========== HISTORY OVERLAY ========== */
+    .history-overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.98);
+      display: none; align-items: center; justify-content: center;
+      padding: 40px; animation: fadeIn 0.4s ease;
+    }
+    .history-overlay.active { display: flex; }
+    .history-card {
+      background: transparent;
+      width: 100%; max-width: 600px;
+    }
+    .history-header {
+      padding: 0 0 40px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 40px;
+    }
+    .history-header h4 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
+    .close-history { cursor: pointer; color: var(--text-dim); transition: color 0.2s; font-size: 24px; }
+    .close-history:hover { color: #fff; }
+    .history-content {
+      max-height: 60vh; overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .history-item {
+      padding: 32px 0; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .history-item .h-email { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
+    .history-item .h-otp {
+      font-size: 11px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--accent-alt);
+    }
+    .history-item .h-otp.none { color: var(--text-muted); }
+    <div class="history-item .h-otp.none">
+      <!-- Hidden QR instance container -->
+      <div id="qrcode" style="display:none"></div>
+    </div>
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ========== QR OVERLAY ========== */
+    .qr-overlay {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.98);
+      display: none; align-items: center; justify-content: center;
+      padding: 40px; animation: fadeIn 0.4s ease;
+    }
+    .qr-overlay.active { display: flex; }
+    .qr-container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .qr-box {
+      background: #fff;
+      padding: 30px;
+      margin: 30px auto;
+      display: inline-block;
+      border: 1px solid #eee;
+    }
+    .qr-label {
+      font-size: 11px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 2px; color: var(--text-dim);
+    }
+
+    /* ========== FOOTER ========== */
+    .footer {
+      background: #000;
+      border-top: 1px solid var(--border);
+      padding: 100px 40px;
+      margin-top: 100px;
+    }
+    .footer-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 60px;
+    }
+    .footer-col h4 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+      font-weight: 900;
+    }
+    .footer-col .brand {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #fff;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .footer-col .profession {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-weight: 400;
+      margin-bottom: 24px;
+      display: block;
+    }
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .footer-link {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+      width: fit-content;
+    }
+    .footer-link:hover { color: #fff; }
+
+    .social-row {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .social-icon {
+      color: var(--text-dim);
+      transition: color 0.2s;
+    }
+    .social-icon:hover { color: #fff; }
+
+    @media (max-width: 900px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ========== HIDDEN ========== */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <i data-lucide="zap" style="width:18px;height:18px;"></i>
+      TempMail
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" onclick="toggleHistory()">History</a>
+      <a class="nav-link" onclick="refreshInbox()">Refresh</a>
+      <a class="nav-link" onclick="destroySession()">Reset</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>Private Inbox.<br>Instantly.</h1>
+    <p>Professional grade temporary email for the modern web. Secure your identity without compromise.</p>
+    <div style="margin-top: 40px;">
+      <button class="btn" id="generateBtn" onclick="generateEmail()">
+        <span id="genBtnText">Get Started</span>
+        <span class="spinner hidden" id="genSpinner" style="width:14px;height:14px;border-width:2px;margin-left:10px"></span>
+      </button>
+    </div>
+    
+    <div class="email-display" id="emailDisplay" style="margin-top: 60px; background: transparent; border: none; padding: 0;">
+      <div class="email-address-row" style="flex-direction: column; gap: 20px;">
+        <span class="email-address" id="emailAddress" style="font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -0.5px;">—</span>
+        <button class="btn btn-outline btn-sm" onclick="copyEmail()"><i data-lucide="copy" style="width:14px;height:14px"></i> Copy Address</button>
+      </div>
+      <div class="email-meta-row" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+        <span class="meta-item" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;"><span class="dot green"></span> System Secure</span>
+        <span class="meta-item" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Session Time: <span id="timer">00:00</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SECTION: OTP Banner ====== -->
+  <div class="otp-banner" id="otpBanner" style="border: 2px solid #fff; border-radius: 0; background: #fff; color: #000; margin-bottom: 80px;">
+    <div class="otp-label" style="color: #000; font-weight: 900; letter-spacing: 2px;">Identification Detected</div>
+    <div class="otp-code" id="otpCode" style="color: #000; text-shadow: none; font-size: 64px; letter-spacing: 15px;">—</div>
+    <div class="otp-actions">
+      <button class="btn btn-sm" style="background: #000; color: #fff; border: none;" onclick="copyOTP()">Copy Code</button>
+    </div>
+  </div>
+
+  <!-- ====== SECTION: Inbox ====== -->
+  <section class="section hidden" id="inboxSection">
+    <div class="section-title">Verified Communications</div>
+    <div class="inbox-header" style="margin-bottom: 40px;">
+      <h3 style="font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px;">Inbox (<span id="inboxCount">0</span>)</h3>
+    </div>
+
+    <div id="inboxContent">
+      <div class="empty-inbox" id="emptyInbox" style="padding: 100px 0; border: 1px dashed var(--border);">
+        <div class="icon" style="margin-bottom: 20px;"><i data-lucide="mail" style="width:40px;height:40px;opacity:0.2"></i></div>
+        <h4 style="text-transform: uppercase; letter-spacing: 2px; font-size: 12px; color: var(--text-muted)">Awaiting correspondence...</h4>
+      </div>
+      <div class="email-list" id="emailList" style="display: grid; grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--border);"></div>
+    </div>
+  </section>
+
+  <!-- ====== SECTION: Email Detail ====== -->
+  <section class="section email-detail" id="emailDetail">
+    <div class="detail-top-bar" style="margin-bottom: 40px;">
+      <button class="btn btn-outline btn-sm" onclick="backToInbox()"><i data-lucide="arrow-left"></i> Close</button>
+      <h3 id="detailSubject" style="font-size: 24px; font-weight: 800; text-transform: uppercase; margin-top: 20px;"></h3>
+    </div>
+
+    <div class="detail-meta" id="detailMeta" style="margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 40px;"></div>
+
+    <div class="detail-otp-extract hidden" id="detailOTP" style="background: #fff; color: #000; padding: 40px; margin-bottom: 40px; text-align: center;">
+      <div class="otp-label" style="color: #000; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; font-size: 11px;">Extracted Verification</div>
+      <div class="extracted-code" id="detailOTPCode" style="color: #000; font-size: 48px; letter-spacing: 10px; margin: 20px 0;"></div>
+      <button class="btn btn-sm" style="background: #000; color: #fff; border: none;" onclick="copyDetailOTP()">Copy Code</button>
+    </div>
+
+    <div class="section-title">Message Body</div>
+    <div id="emailContentArea"></div>
+  </section>
+
+  <!-- ====== SECTION: QR Overlay ====== -->
+  <div class="qr-overlay" id="qrOverlay">
+    <div class="qr-container">
+      <div class="qr-label">Identity Verification</div>
+      <div class="qr-box" id="qrResult"></div>
+      <div style="font-size: 14px; font-weight: 400; color: #fff; margin-bottom: 40px;" id="qrEmailText"></div>
+      <button class="btn btn-outline" onclick="closeQRModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- ====== Actions Bar ====== -->
+  <div class="nav hidden" id="actionsBar" style="border-top: 1px solid var(--border); border-bottom: none; margin-top: 80px; padding: 40px 0;">
+    <div class="nav-links" style="width: 100%; justify-content: space-between;">
+      <button class="btn btn-outline btn-sm" onclick="refreshInbox()"><i data-lucide="refresh-cw"></i> Sync</button>
+      <button class="btn btn-outline btn-sm" onclick="showQRModal()"><i data-lucide="qr-code"></i> Identity QR</button>
+      <button class="btn btn-danger btn-sm" onclick="destroySession()"><i data-lucide="trash-2"></i> Terminate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== FOOTER ====== -->
+<footer class="footer">
+  <div class="footer-grid">
+    <!-- Identity -->
+    <div class="footer-col">
+      <span class="brand">Vrushabh Udepurkar</span>
+      <span class="profession">Agentic AI Developer</span>
+      <p style="font-size:13px; color:var(--text-dim); line-height:1.6; max-width:240px;">
+        Engineering autonomous intelligence and high-end digital experiences.
+      </p>
+      <div class="social-row">
+        <a href="https://github.com/Vrushabh100" target="_blank" class="social-icon"><i class="fa-brands fa-github" style="font-size:20px"></i></a>
+        <a href="https://www.linkedin.com/in/vrushabh-udepurkar-054559251" target="_blank" class="social-icon"><i class="fa-brands fa-linkedin" style="font-size:20px"></i></a>
+        <a href="https://www.instagram.com/vrushabh_jain1103?igsh=MXEwZ3R6amp1a3l3NQ==" target="_blank" class="social-icon"><i class="fa-brands fa-instagram" style="font-size:20px"></i></a>
+        <a href="https://discord.com/invite/nveTVUEN" target="_blank" class="social-icon"><i class="fa-brands fa-discord" style="font-size:20px"></i></a>
+      </div>
+    </div>
+
+    <!-- Ecosystem -->
+    <div class="footer-col">
+      <h4>Ecosystem</h4>
+      <div class="footer-links">
+        <a href="#" class="footer-link">AI Agent Report</a>
+        <a href="#" class="footer-link">Case Studies</a>
+        <a href="#" class="footer-link">Partners</a>
+        <a href="#" class="footer-link">Hire an Expert</a>
+      </div>
+    </div>
+
+    <!-- Platform -->
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <div class="footer-links">
+        <a href="#" class="footer-link">Status</a>
+        <a href="#" class="footer-link">Documentation</a>
+        <a href="#" class="footer-link">Legal</a>
+        <a href="#" class="footer-link">Privacy</a>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="footer-col">
+      <h4>Support</h4>
+      <div class="footer-links">
+        <a href="mailto:contact@vrushabh.tech" class="footer-link">Contact</a>
+        <a href="tel:+918007470450" class="footer-link">+91 8007470450</a>
+        <a href="#" class="footer-link">Brand Guidelines</a>
+        <a href="#" class="footer-link">User Tests</a>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1200px; margin: 80px auto 0; padding-top: 40px; border-top:1px solid #111; display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">&copy; 2026 TempMail Luxe. All Rights Reserved.</span>
+    <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Built by Vrushabh Udepurkar</span>
+  </div>
+</footer>
+
+<!-- History Overlay -->
+<div class="history-overlay" id="historyOverlay" onclick="closeHistoryOverlay(event)">
+  <div class="history-card" onclick="event.stopPropagation()">
+    <div class="history-header">
+      <h4>Email History</h4>
+      <span class="close-history" onclick="toggleHistory()">×</span>
+    </div>
+    <div class="history-content" id="historyContent">
+      <!-- Items injected via JS -->
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Notification Sound -->
+<audio id="notifSound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRl9vT19teleVBBAABAgAQABAAAwA=" type="audio/wav">
+</audio>
+
+<script>
+// ============================
+// STATE
+// ============================
+let state = {
+  provider: 'vrushabhudepurkar.tech',
+  email: null,
+  messages: [],
+  otpFound: null,
+  otpCount: 0,
+  startTime: null,
+  pollInterval: null,
+  timerInterval: null,
+  seenIds: new Set(),
+};
+
+const API = '/api/tempmail';
+
+// ============================
+// GENERATE EMAIL
+// ============================
+async function generateEmail() {
+  const btn = document.getElementById('generateBtn');
+  const spinner = document.getElementById('genSpinner');
+  const text = document.getElementById('genBtnText');
+
+  btn.disabled = true;
+  spinner.classList.remove('hidden');
+  text.textContent = 'Generating...';
+
+  // Stop any existing poll
+  clearInterval(state.pollInterval);
+  clearInterval(state.timerInterval);
+
+  try {
+    const domain = "vrushabhudepurkar.tech";
+    const username = generateRandomString(8);
+    const address = `${username}@${domain}`;
+
+    state.provider = 'vrushabhudepurkar.tech';
+    state.email = address;
+    state.messages = [];
+    state.seenIds = new Set();
+    
+    // RECORD TO HISTORY
+    addToHistory(address);
+    
+    // Success! Show UI
+    showEmailActive();
+    startTimer();
+    startPolling();
+    toast('Email address generated', 'success');
+
+  } catch (err) {
+    console.error(err);
+    toast('Generation failed', 'error');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add('hidden');
+    text.textContent = 'Generate New Address';
+  }
+}
+
+// MailTM and 1Secmail creation logic removed for custom domain setup
+
+// ============================
+// POLLING
+// ============================
+function startPolling() {
+  fetchMessages(); // immediate
+  state.pollInterval = setInterval(fetchMessages, 3000);
+}
+
+async function fetchMessages() {
+  try {
+    const res = await fetch(`${API}/messages?email=${state.email}`);
+    if (!res.ok) throw new Error("Failed to fetch messages");
+    const data = await res.json();
+    const messages = data.messages || [];
+
+    const prevCount = state.messages.length;
+    state.messages = messages;
+
+    updateInboxUI();
+
+    if (messages.length > prevCount && prevCount > 0) {
+      toast('New email received', 'success');
+      try { document.getElementById('notifSound').play(); } catch(e) {}
+    }
+
+    // Auto-extract OTP from latest
+    if (messages.length > 0) {
+      for (const msg of messages) {
+        if (!state.seenIds.has(msg.id)) {
+          const detail = msg; // Full body is already fetched!
+          if (detail) {
+            const extractionBody = detail.textBody || detail.text || detail.html || '';
+            const otp = extractOTP(extractionBody);
+            if (otp && otp !== state.otpFound) {
+              state.otpFound = otp;
+              state.otpCount++;
+              showOTPBanner(otp);
+              updateHistoryWithOTP(state.email, otp); // Update history entry
+              toast(`Security code: ${otp}`, 'success');
+            }
+          }
+          state.seenIds.add(msg.id);
+        }
+      }
+    }
+
+    updateStats();
+  } catch (err) {
+    console.error('Poll error:', err);
+  }
+}
+
+async function fetchMessageDetail(id) {
+  // We already have the full hydrated message in state.messages array now!
+  return state.messages.find(m => m.id === id) || null;
+}
+
+// ============================
+// OTP EXTRACTION ENGINE
+// ============================
+function extractOTP(text) {
+  if (!text) return null;
+
+  // Clean HTML tags for text parsing
+  const clean = text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
+
+  // Pattern priority: most specific first
+  const patterns = [
+    // "Your code is 123456" / "verification code: 123456"
+    /(?:verification|confirm(?:ation)?|security|auth(?:entication)?|one[- ]?time|login)\s*(?:code|pin|otp|number)\s*(?:is|:)\s*(\d{4,8})/i,
+    // "OTP: 123456" / "OTP is 123456"
+    /\bOTP\s*(?:is|:|-|–)?\s*(\d{4,8})\b/i,
+    // "code: 123456" near verification context
+    /\bcode\s*(?:is|:|-|–)\s*(\d{4,8})\b/i,
+    // "enter 123456" / "use 123456"
+    /(?:enter|use|type|input|submit)\s+(?:the\s+)?(?:code\s+)?(\d{4,8})\b/i,
+    // Standalone 4-6 digit code on its own line or padded
+    /(?:^|\s|>)\s*(\d{4,6})\s*(?:$|\s|<)/m,
+    // Token/verification link patterns
+    /(?:verify|confirm|activate|reset)[^"'\s]*?(?:token|code|key)=([A-Za-z0-9]{6,})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = clean.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  // Look for verification URLs
+  const urlPattern = /https?:\/\/[^\s"'<>]+(?:verify|confirm|activate|token|auth)[^\s"'<>]*/i;
+  const urlMatch = text.match(urlPattern);
+  if (urlMatch) {
+    // Extract token from URL
+    const tokenMatch = urlMatch[0].match(/(?:token|code|otp|key)=([^&\s"']+)/i);
+    if (tokenMatch) return tokenMatch[1].slice(0, 20);
+  }
+
+  return null;
+}
+
+// ============================
+// UI UPDATES
+// ============================
+function showEmailActive() {
+  document.getElementById('emailDisplay').classList.add('active');
+  document.getElementById('emailAddress').textContent = state.email;
+  document.getElementById('inboxSection').classList.remove('hidden');
+  document.getElementById('actionsBar').classList.remove('hidden');
+  document.getElementById('actionsBar').style.display = 'flex';
+  state.startTime = Date.now();
+}
+
+function updateInboxUI() {
+  const list = document.getElementById('emailList');
+  const empty = document.getElementById('emptyInbox');
+  const count = document.getElementById('inboxCount');
+
+  count.textContent = state.messages.length;
+
+  if (state.messages.length === 0) {
+    empty.style.display = '';
+    list.innerHTML = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  list.innerHTML = state.messages.map((msg, i) => {
+    const from = msg.from?.name || msg.from?.address || 'Anonymous';
+    const subject = msg.subject || '(No Subject)';
+    const date = new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const id = msg.id;
+
+    return `
+      <div class="history-item" onclick="openEmail('${id}')" style="cursor:pointer; border-bottom: 1px solid var(--border); padding: 40px 0;">
+        <div style="flex:1;">
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 12px;">From: ${escapeHtml(from)}</div>
+          <div style="font-size: 24px; font-weight: 900; line-height: 1; text-transform: uppercase; letter-spacing: -1px; color: #fff;">${escapeHtml(subject)}</div>
+        </div>
+        <div style="text-align: right;">
+          ${state.otpFound && i === 0 ? '<div style="font-size: 11px; font-weight: 900; color: var(--accent-alt); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Secure Identification</div>' : ''}
+          <div style="font-size: 11px; font-weight: 400; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Received ${date}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  lucide.createIcons();
+}
+
+function showOTPBanner(otp) {
+  const banner = document.getElementById('otpBanner');
+  document.getElementById('otpCode').textContent = otp;
+  banner.classList.add('active');
+  banner.style.animation = 'none';
+  banner.offsetHeight; // reflow
+  banner.style.animation = 'fadeUp 0.4s ease';
+}
+
+function updateStats() {
+  // Stats bar removed for minimalist lifestyle design
+}
+
+function startTimer() {
+  const el = document.getElementById('timer');
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
+    const diff = Math.floor((Date.now() - state.startTime) / 1000);
+    const m = Math.floor(diff / 60).toString().padStart(2, '0');
+    const s = (diff % 60).toString().padStart(2, '0');
+    el.textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+// ============================
+// EMAIL DETAIL
+// ============================
+async function openEmail(id) {
+  const detail = await fetchMessageDetail(id);
+  if (!detail) { toast('Fetch failed', 'error'); return; }
+
+  document.getElementById('inboxSection').style.display = 'none';
+  document.getElementById('emailDetail').classList.add('active');
+
+  const subject = detail.subject || '(no subject)';
+  document.getElementById('detailSubject').textContent = subject;
+
+  // Meta
+  const meta = document.getElementById('detailMeta');
+  const from = detail.from?.name ? `${detail.from.name} <${detail.from.address}>` : detail.from?.address || '—';
+  const to = detail.to?.[0]?.address || state.email;
+  const date = new Date(detail.createdAt).toLocaleString();
+
+  meta.innerHTML = `
+    <div class="detail-meta-item"><div class="dm-label">From</div><div class="dm-value">${escapeHtml(from)}</div></div>
+    <div class="detail-meta-item"><div class="dm-label">To</div><div class="dm-value">${escapeHtml(to)}</div></div>
+    <div class="detail-meta-item"><div class="dm-label">Subject</div><div class="dm-value">${escapeHtml(subject)}</div></div>
+    <div class="detail-meta-item"><div class="dm-label">Date</div><div class="dm-value">${date}</div></div>
+  `;
+
+  // OTP extraction
+  const body = detail.text || detail.textBody || detail.html || detail.htmlBody || detail.body || '';
+  const otp = extractOTP(body);
+  const otpSection = document.getElementById('detailOTP');
+  if (otp) {
+    otpSection.classList.remove('hidden');
+    document.getElementById('detailOTPCode').textContent = otp;
+  } else {
+    otpSection.classList.add('hidden');
+  }
+
+  // Content
+  const area = document.getElementById('emailContentArea');
+  const html = detail.html || detail.htmlBody || detail.body || null;
+  const text = detail.text || detail.textBody || null;
+
+  if (html) {
+    area.innerHTML = `<div class="html-preview"><iframe id="detailFrame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"></iframe></div>`;
+    setTimeout(() => {
+      const iframe = document.getElementById('detailFrame');
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(html);
+      doc.close();
+      // Auto-resize
+      setTimeout(() => {
+        try {
+          iframe.style.height = Math.max(400, doc.body.scrollHeight + 40) + 'px';
+        } catch(e) {}
+      }, 300);
+    }, 50);
+  } else if (text) {
+    area.innerHTML = `<div class="text-preview">${escapeHtml(text)}</div>`;
+  } else {
+    area.innerHTML = `<div class="text-preview" style="color:var(--text-dimmer);text-align:center">No content available</div>`;
+  }
+}
+
+function backToInbox() {
+  document.getElementById('emailDetail').classList.remove('active');
+  document.getElementById('inboxSection').style.display = '';
+}
+
+// ============================
+// ACTIONS
+// ============================
+function copyEmail() {
+  if (!state.email) return;
+  navigator.clipboard.writeText(state.email).then(() => toast('Address copied', 'success'));
+}
+
+function copyOTP() {
+  if (!state.otpFound) return;
+  navigator.clipboard.writeText(state.otpFound).then(() => toast('OTP copied', 'success'));
+}
+
+function copyDetailOTP() {
+  const code = document.getElementById('detailOTPCode').textContent;
+  navigator.clipboard.writeText(code).then(() => toast('Code copied', 'success'));
+}
+
+async function refreshInbox() {
+  toast('Refreshing...', 'success');
+  await fetchMessages();
+}
+
+function destroySession() {
+  clearInterval(state.pollInterval);
+  clearInterval(state.timerInterval);
+  state = { provider: 'vrushabhudepurkar.tech', email: null, messages: [], otpFound: null, otpCount: 0, startTime: null, pollInterval: null, timerInterval: null, seenIds: new Set() };
+
+  document.getElementById('emailDisplay').classList.remove('active');
+  document.getElementById('inboxSection').classList.add('hidden');
+  document.getElementById('actionsBar').classList.add('hidden');
+  document.getElementById('otpBanner').classList.remove('active');
+  document.getElementById('emailDetail').classList.remove('active');
+  document.getElementById('emailList').innerHTML = '';
+  document.getElementById('emptyInbox').style.display = '';
+  document.getElementById('genBtnText').textContent = 'Get Started';
+
+  toast('Session reset', 'success');
+}
+
+// ============================
+// IDENTITY QR
+// ============================
+function showQRModal() {
+  if (!state.email) {
+    toast('Generate an email first', 'error');
+    return;
+  }
+  
+  const overlay = document.getElementById('qrOverlay');
+  const result = document.getElementById('qrResult');
+  const text = document.getElementById('qrEmailText');
+  
+  // Clear previous QR
+  result.innerHTML = '';
+  text.textContent = state.email;
+  
+  // Generate New QR
+  new QRCode(result, {
+    text: state.email,
+    width: 256,
+    height: 256,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+  });
+  
+  overlay.classList.add('active');
+}
+
+function closeQRModal() {
+  document.getElementById('qrOverlay').classList.remove('active');
+}
+
+
+// ============================
+// UTILITIES
+// ============================
+function generateRandomString(len) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function toast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i data-lucide="${iconName}" style="width:14px;height:14px"></i> ${message}`;
+  container.appendChild(t);
+  lucide.createIcons();
+  
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(50px)';
+    t.style.transition = 'all 0.3s';
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+// ============================
+// HISTORY LOGIC
+// ============================
+let historyData = JSON.parse(localStorage.getItem('tempmail_history') || '[]');
+
+function addToHistory(email) {
+  // Remove if exists to move to top
+  historyData = historyData.filter(h => h.email !== email);
+  historyData.unshift({ email, otp: null, date: new Date().toISOString() });
+  if (historyData.length > 20) historyData.pop(); // Keep last 20
+  saveHistory();
+}
+
+function updateHistoryWithOTP(email, otp) {
+  const item = historyData.find(h => h.email === email);
+  if (item) {
+    item.otp = otp;
+    saveHistory();
+  }
+}
+
+function saveHistory() {
+  localStorage.setItem('tempmail_history', JSON.stringify(historyData));
+}
+
+function toggleHistory() {
+  const overlay = document.getElementById('historyOverlay');
+  const isActive = overlay.classList.toggle('active');
+  if (isActive) renderHistory();
+}
+
+function closeHistoryOverlay(e) {
+  document.getElementById('historyOverlay').classList.remove('active');
+}
+
+function renderHistory() {
+  const container = document.getElementById('historyContent');
+  if (historyData.length === 0) {
+    container.innerHTML = `<div class="empty-history">No history yet. Generate an email to start!</div>`;
+    return;
+  }
+
+  container.innerHTML = historyData.map(item => `
+    <div class="history-item">
+      <div class="h-email">${escapeHtml(item.email)}</div>
+      <div class="h-otp ${item.otp ? '' : 'none'}">${item.otp ? '<i data-lucide="key" style="width:10px;height:10px;display:inline-block"></i> ' + item.otp : 'None'}</div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+// Initial icon creation
+lucide.createIcons();
+
+
+</script>
+
+</body>
+</html>
