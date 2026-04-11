@@ -6,13 +6,12 @@ const { simpleParser } = require('mailparser');
 // ============================================
 // GMAIL IMAP CLIENT CONFIGURATION
 // ============================================
-let imapClient = null;
-
-// Cache: UID -> parsed message object (avoids re-downloading)
-const messageCache = new Map();
+// ============================================
+// GMAIL IMAP CLIENT CONFIGURATION
+// ============================================
 
 async function createClient() {
-    const client = new ImapFlow({
+    return new ImapFlow({
         host: 'imap.gmail.com',
         port: 993,
         secure: true,
@@ -21,44 +20,12 @@ async function createClient() {
             pass: process.env.GMAIL_APP_PASSWORD || ''
         },
         logger: false,
-        disableAutoIdle: false,
         greetingTimeout: 15000,
         connectionTimeout: 15000,
-        socketTimeout: 60000,
+        socketTimeout: 30000,
     });
-
-    client.on('close', () => {
-        console.log("[TempMail] IMAP connection closed. Will reconnect on next request.");
-        imapClient = null;
-    });
-
-    client.on('error', (err) => {
-        console.error("[TempMail] IMAP error:", err.message);
-        imapClient = null;
-    });
-
-    return client;
 }
 
-async function ensureConnected() {
-    if (imapClient && !imapClient.usable) {
-        console.log("[TempMail] IMAP client no longer usable, resetting.");
-        imapClient = null;
-    }
-
-    if (!imapClient) {
-        const client = await createClient();
-        try {
-            await client.connect();
-            console.log("[TempMail] IMAP connected to Gmail successfully.");
-            imapClient = client;
-        } catch (err) {
-            console.error("[TempMail] IMAP Connection Failed:", err.message);
-            throw new Error("Could not connect to Gmail IMAP. Check GMAIL_EMAIL and GMAIL_APP_PASSWORD in .env");
-        }
-    }
-    return imapClient;
-}
 
 // Check if an envelope's TO addresses match the target email
 function envelopeMatchesTarget(envelope, targetEmail) {
@@ -106,125 +73,73 @@ function formatMessage(uid, parsed) {
 
 // GET messages for a specific generated email address
 router.get("/messages", async (req, res) => {
+    let client = null;
+    let lock = null;
+    
     try {
         const { email } = req.query;
-        if (!email) {
-            return res.status(400).json({ error: "Missing email parameter" });
-        }
+        if (!email) return res.status(400).json({ error: "Missing email parameter" });
 
         if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
-            return res.status(500).json({ error: "Server missing Gmail credentials. Add GMAIL_EMAIL and GMAIL_APP_PASSWORD in .env" });
+            return res.status(500).json({ error: "Server missing Gmail credentials. Add them in Vercel Environment Variables." });
         }
 
-        const client = await ensureConnected();
-
-        let lock;
-        try {
-            lock = await client.getMailboxLock('INBOX');
-        } catch (err) {
-            imapClient = null;
-            return res.status(500).json({ error: "Could not acquire mailbox lock: " + err.message });
-        }
-
+        // 1. Transactional Connect (One-request-one-connection for Serverless reliability)
+        client = await createClient();
+        await client.connect();
+        
+        lock = await client.getMailboxLock('INBOX');
         const messages = [];
 
-        try {
-            // -------------------------------------------------------
-            // ULTRA-FAST STRATEGY:
-            //
-            // 1. Fetch ONLY envelopes (To, From, Subject, Date) of the
-            //    last 15 messages — this is ~100x lighter than full source.
-            //    No search index needed = instant for new mail!
-            //
-            // 2. Check envelope TO addresses for our target email.
-            //
-            // 3. Only for MATCHING envelopes, download full source
-            //    (or use cache if we already have it).
-            //
-            // This makes each poll take <200ms instead of 2-5 seconds.
-            // -------------------------------------------------------
+        // 2. ULTRA-FAST STRATEGY: Last 15 messages envelope scan
+        const status = await client.status('INBOX', { messages: true });
+        const totalMessages = status.messages;
 
-            const status = await client.status('INBOX', { messages: true });
-            const totalMessages = status.messages;
+        if (totalMessages > 0) {
+            const startSeq = Math.max(1, totalMessages - 14);
+            const seqRange = `${startSeq}:*`;
+            const matchingUids = [];
 
-            if (totalMessages > 0) {
-                // Step 1: Lightweight envelope scan of last 15 messages
-                const startSeq = Math.max(1, totalMessages - 14);
-                const seqRange = `${startSeq}:*`;
-                
-                const matchingUids = [];
-
-                // Fetch ONLY envelope + uid (very fast, no body download)
-                for await (let msg of client.fetch(seqRange, { envelope: true, uid: true })) {
-                    if (envelopeMatchesTarget(msg.envelope, email)) {
-                        matchingUids.push(msg.uid);
-                    }
-                }
-
-                // Step 2: For matches, use cache or fetch full source
-                for (const uid of matchingUids) {
-                    // Check cache first
-                    if (messageCache.has(uid)) {
-                        messages.push(messageCache.get(uid));
-                        continue;
-                    }
-
-                    // Need to download this message's full source
-                    try {
-                        for await (let msg of client.fetch([uid], { source: true }, { uid: true })) {
-                            const parsed = await simpleParser(msg.source);
-                            if (fullHeaderMatch(parsed, email)) {
-                                const formatted = formatMessage(uid, parsed);
-                                messageCache.set(uid, formatted);
-                                messages.push(formatted);
-                            }
-                        }
-                    } catch (fetchErr) {
-                        console.error(`[TempMail] Error fetching UID ${uid}:`, fetchErr.message);
-                    }
-                }
-
-                // Step 3: Also check IMAP search index for older messages
-                // (handles messages that scrolled past our 15-message window)
-                try {
-                    let searchUids = await client.search({ to: email }, { uid: true });
-                    if (!Array.isArray(searchUids)) searchUids = [];
-                    
-                    const foundUids = new Set(matchingUids);
-                    const olderUids = searchUids.filter(uid => !foundUids.has(uid));
-
-                    if (olderUids.length > 0) {
-                        const toFetch = olderUids.slice(-5); // max 5 older ones
-                        for (const uid of toFetch) {
-                            if (messageCache.has(uid)) {
-                                messages.push(messageCache.get(uid));
-                                continue;
-                            }
-                            try {
-                                for await (let msg of client.fetch([uid], { source: true }, { uid: true })) {
-                                    const parsed = await simpleParser(msg.source);
-                                    if (fullHeaderMatch(parsed, email)) {
-                                        const formatted = formatMessage(uid, parsed);
-                                        messageCache.set(uid, formatted);
-                                        messages.push(formatted);
-                                    }
-                                }
-                            } catch (fetchErr) {
-                                console.error(`[TempMail] Error fetching older UID ${uid}:`, fetchErr.message);
-                            }
-                        }
-                    }
-                } catch (searchErr) {
-                    // Search index might not be ready yet — that's fine, fast path handles it
-                    console.log(`[TempMail] Index search skipped: ${searchErr.message}`);
+            for await (let msg of client.fetch(seqRange, { envelope: true, uid: true })) {
+                if (envelopeMatchesTarget(msg.envelope, email)) {
+                    matchingUids.push(msg.uid);
                 }
             }
 
-        } finally {
-            lock.release();
+            for (const uid of matchingUids) {
+                try {
+                    for await (let msg of client.fetch([uid], { source: true }, { uid: true })) {
+                        const parsed = await simpleParser(msg.source);
+                        if (fullHeaderMatch(parsed, email)) {
+                            messages.push(formatMessage(uid, parsed));
+                        }
+                    }
+                } catch (fetchErr) {
+                    console.error(`[TempMail] Error fetching UID ${uid}:`, fetchErr.message);
+                }
+            }
+
+            // Secondary search for older messages
+            try {
+                let searchUids = await client.search({ to: email }, { uid: true });
+                if (Array.isArray(searchUids)) {
+                    const foundUids = new Set(matchingUids);
+                    const olderUids = searchUids.filter(uid => !foundUids.has(uid)).slice(-5);
+                    for (const uid of olderUids) {
+                        for await (let msg of client.fetch([uid], { source: true }, { uid: true })) {
+                            const parsed = await simpleParser(msg.source);
+                            if (fullHeaderMatch(parsed, email)) {
+                                messages.push(formatMessage(uid, parsed));
+                            }
+                        }
+                    }
+                }
+            } catch (searchErr) {
+                console.log(`[TempMail] Index search skipped: ${searchErr.message}`);
+            }
         }
 
-        // De-duplicate, sort latest first, limit to 10
+        // 3. De-duplicate and sort
         const uniqueMessages = [...new Map(messages.map(m => [m.id, m])).values()];
         uniqueMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const result = uniqueMessages.slice(0, 10);
@@ -232,13 +147,22 @@ router.get("/messages", async (req, res) => {
         res.json({ provider: "vrushabhudepurkar.tech", messages: result });
 
     } catch (err) {
-        console.error("[TempMail] Fetch messages error:", err.message);
-        if (err.message.includes('IMAP') || err.message.includes('connect') || err.message.includes('socket')) {
-            imapClient = null;
+        console.error("[TempMail] Vercel Fetch Error:", err.message);
+        res.status(500).json({ error: "IMAP Error: " + err.message });
+    } finally {
+        // 4. Force Cleanup (CRITICAL for Serverless)
+        if (lock) lock.release();
+        if (client) {
+            try {
+                await client.logout();
+                console.log("[TempMail] IMAP logged out (Transactional success).");
+            } catch (logoutErr) {
+                console.error("[TempMail] Logout error:", logoutErr.message);
+            }
         }
-        res.status(500).json({ error: err.message });
     }
 });
+
 
 // GET single message detail (Deprecated — /messages already returns full body)
 router.get("/messages/:id", (req, res) => {
