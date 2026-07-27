@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pinbox — Instant Private mailbox</title>
   <meta name="description" content="Generate temporary email addresses instantly. Receive OTPs, verification links, and emails without using your real email.">
-  <!-- Google OAuth redirect URI — must match EXACTLY what's in Google Console -->
-  <meta name="google-redirect-uri" content="http://localhost:3000/home">
+  <!-- Google OAuth redirect URI is dynamically inferred from window.location.origin -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -707,7 +706,6 @@
   </style>
 
   
-  <meta name="google-redirect-uri" content="http://localhost:3000/">
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
