@@ -4,6 +4,29 @@ const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 const cheerio = require('cheerio');
 
+const authMiddleware = require('../middleware/auth');
+router.use(authMiddleware);
+
+router.use((req, res, next) => {
+    if (req.user) {
+        if (req.user.status === 'banned') {
+            return res.status(403).json({ error: "Your account is banned" });
+        }
+        if (req.user.status === 'suspended') {
+            let msg = "Your account is suspended.";
+            if (req.user.suspendedUntil) {
+                const diffMs = new Date(req.user.suspendedUntil) - new Date();
+                const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+                if (diffHours > 0) {
+                    msg = `YOUR ACCOUNT SUSPENDED TEMPORARILY TILL ${diffHours} HOURS.`;
+                }
+            }
+            return res.status(403).json({ error: msg });
+        }
+    }
+    next();
+});
+
 // ============================================
 // GMAIL IMAP CLIENT CONFIGURATION
 // ============================================
@@ -456,5 +479,62 @@ router.get("/messages/:id", (req, res) => {
     res.status(400).json({ error: "Use GET /messages?email=addr endpoint which returns full body data." });
 });
 
+/**
+ * GET /api/tempmail/limits
+ * Returns the user's current limits and plan.
+ */
+router.get("/limits", async (req, res, next) => {
+    try {
+        if (!req.user || !req.user._id) return res.status(401).json({ error: "Unauthorized" });
+        const User = require('../models/User');
+        const userDoc = await User.findById(req.user._id);
+        if (!userDoc) return res.status(404).json({ error: "User not found" });
+        
+        res.json({
+            plan: userDoc.plan || 'free',
+            emailsGenerated: userDoc.usage?.emailsGenerated || 0,
+            otpRetrieved: userDoc.usage?.otpRetrieved || 0
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * POST /api/tempmail/track
+ * Tracks user actions for analytics (e.g. emailsGenerated, otpRetrieved)
+ * Now also enforces usage limits.
+ */
+router.post("/track", async (req, res, next) => {
+    try {
+        if (!req.user || !req.user._id) return res.status(401).json({ error: "Unauthorized" });
+        const { action } = req.body;
+        
+        const User = require('../models/User'); 
+        const userDoc = await User.findById(req.user._id);
+        
+        if (!userDoc) return res.status(404).json({ error: "User not found" });
+
+        // Enforce Limits
+        if (userDoc.plan === 'free') {
+            if (action === 'emailsGenerated' && (userDoc.usage?.emailsGenerated || 0) >= 20) {
+                return res.status(403).json({ error: "LimitReached", type: "email" });
+            }
+            if (action === 'otpRetrieved' && (userDoc.usage?.otpRetrieved || 0) >= 6) {
+                return res.status(403).json({ error: "LimitReached", type: "otp" });
+            }
+        }
+        
+        const updateField = {};
+        if (action === 'emailsGenerated') updateField['usage.emailsGenerated'] = 1;
+        else if (action === 'otpRetrieved') updateField['usage.otpRetrieved'] = 1;
+        else return res.status(400).json({ error: "Invalid action" });
+
+        await User.findByIdAndUpdate(req.user._id, { $inc: updateField });
+        res.json({ success: true });
+    } catch (err) {
+        next(err);
+    }
+});
 
 module.exports = router;
