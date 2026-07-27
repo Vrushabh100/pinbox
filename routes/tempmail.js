@@ -251,13 +251,13 @@ function extractOTPFromUrl(url) {
         const urlObj = new URL(url);
         for (const [key, value] of urlObj.searchParams.entries()) {
             if (/code|otp|token|pin/i.test(key) && /^\d{4,8}$/.test(value)) return value;
-        }
+}
     } catch (e) {}
     return null;
 }
 
 // GET messages for a specific generated email address
-router.get("/messages", async (req, res) => {
+router.get("/messages", async (req, res, next) => {
     try {
         const { email } = req.query;
         if (!email) {
@@ -381,14 +381,13 @@ router.get("/messages", async (req, res) => {
         uniqueMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const result = uniqueMessages.slice(0, 10);
 
-        res.json({ provider: "vrushabhudepurkar.tech", messages: result });
+        res.json({ provider: "aiplex.app", messages: result });
 
     } catch (err) {
-        console.error("[TempMail] Fetch messages error:", err.message);
         if (err.message.includes('IMAP') || err.message.includes('connect') || err.message.includes('socket')) {
             imapClient = null;
         }
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
@@ -405,7 +404,7 @@ router.get("/messages", async (req, res) => {
  * Body: { url: "https://..." }
  * Response: { success, otp, finalUrl, pageTitle, pageText }
  */
-router.post("/resolve-link", async (req, res) => {
+router.post("/resolve-link", async (req, res, next) => {
     try {
         const { url } = req.body;
 
@@ -420,14 +419,11 @@ router.post("/resolve-link", async (req, res) => {
             return res.status(400).json({ error: "Invalid URL provided" });
         }
 
-        console.log(`[TempMail] Resolve-link request for: ${url}`);
-
         const result = await resolveOTPFromLink(url);
         res.json(result);
 
     } catch (err) {
-        console.error("[TempMail] resolve-link error:", err.message);
-        res.status(500).json({ error: err.message, success: false, otp: null });
+        next(err);
     }
 });
 
@@ -439,7 +435,7 @@ router.post("/resolve-link", async (req, res) => {
  * Body: { html: "...", text: "..." }
  * Response: { links: [...] }
  */
-router.post("/extract-links", async (req, res) => {
+router.post("/extract-links", async (req, res, next) => {
     try {
         const { html, text } = req.body;
 
@@ -451,8 +447,7 @@ router.post("/extract-links", async (req, res) => {
         res.json({ links });
 
     } catch (err) {
-        console.error("[TempMail] extract-links error:", err.message);
-        res.status(500).json({ error: err.message, links: [] });
+        next(err);
     }
 });
 

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pinbox — Instant Private mailbox</title>
   <meta name="description" content="Generate temporary email addresses instantly. Receive OTPs, verification links, and emails without using your real email.">
+  <!-- Google OAuth redirect URI — must match EXACTLY what's in Google Console -->
+  <meta name="google-redirect-uri" content="http://localhost:3000/home">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -38,6 +40,65 @@
       -webkit-font-smoothing: antialiased;
     }
 
+    /* ===== Shared Button Style (matches CoBox) ===== */
+    .btn-animated-border {
+      background: #ffffff;
+      color: #000000;
+      border-radius: 0;
+      font-weight: 700;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .btn-animated-border:hover {
+      background: transparent;
+      color: #ffffff;
+      border-color: #ffffff;
+      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Dynamic background layer - home page */
+    #page-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      transition: background-image 0.5s ease;
+    }
+    #page-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+    }
+
+    /* Dynamic background layer - landing/auth page */
+    #landing-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 190; /* just below auth-gate z-200 */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      transition: background-image 0.5s ease;
+      pointer-events: none;
+      display: none; /* shown only when auth gate is open */
+    }
+    #landing-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+    }
+
     /* Layout Containers */
     .app {
       max-width: 1200px;
@@ -62,7 +123,7 @@
       display: flex; align-items: center; gap: 10px;
     }
     .nav-links {
-      display: flex; gap: 30px;
+      display: flex; gap: 30px; align-items: center;
     }
     .nav-link {
       text-transform: uppercase;
@@ -479,6 +540,11 @@
     .history-header h4 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
     .close-history { cursor: pointer; color: var(--text-dim); transition: color 0.2s; font-size: 24px; }
     .close-history:hover { color: #fff; }
+    
+    .history-content::-webkit-scrollbar { width: 4px; }
+    .history-content::-webkit-scrollbar-track { background: transparent; }
+    .history-content::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
     .history-content {
       max-height: 60vh; overflow-y: auto;
       display: flex; flex-direction: column;
@@ -495,14 +561,292 @@
     .history-item .h-otp.none { color: var(--text-muted); }
     .empty-history { text-align: center; padding: 40px 20px; color: var(--text-dimmer); font-size: 13px; }
 
+    /* QR Modal Styles */
+    .qr-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.95); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .qr-overlay.active { opacity: 1; pointer-events: all; }
+    .qr-modal {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; color: #fff; font-family: 'Inter', sans-serif;
+    }
+    .qr-modal h4 {
+      font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+      color: #888; margin-bottom: 30px;
+    }
+    .qr-code-box {
+      background: #fff; padding: 20px;
+      margin-bottom: 30px;
+    }
+    .qr-code-box img { width: 250px; height: 250px; display: block; }
+    .qr-email { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .qr-faint-text {
+      font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+      color: #333; margin-bottom: 40px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-close-qr {
+      background: transparent; border: 1px solid #333; color: #fff;
+      padding: 12px 40px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-close-qr:hover { border-color: #666; background: rgba(255,255,255,0.05); }
+
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    
+    /* Pricing Modal & Premium Button */
+    .btn-nav-premium {
+      background: transparent;
+      border: none;
+      border-left: 2px solid #e62e2d;
+      color: #fff;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      margin-left: 10px;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .btn-nav-premium::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(230, 46, 45, 0.4), transparent);
+      transition: 0.5s;
+    }
+    .btn-nav-premium:hover::before {
+      left: 100%;
+    }
+    .btn-nav-premium:hover {
+      background: rgba(230, 46, 45, 0.1);
+      color: #fff;
+    }
+
+    .pricing-overlay {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; transition: opacity 0.3s;
+    }
+    .pricing-overlay.active { display: flex; opacity: 1; }
+    .pricing-modal {
+      background: #0f0f0f;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      width: 100%; max-width: 900px;
+      padding: 30px;
+      position: relative;
+      max-height: 95vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .pricing-close {
+      position: absolute; top: 15px; right: 15px; z-index: 10;
+      background: transparent; border: none; color: #888;
+      font-size: 24px; cursor: pointer; transition: color 0.2s;
+    }
+    .pricing-close:hover { color: #fff; }
+    .pricing-header { text-align: center; margin-bottom: 25px; }
+    .pricing-badge {
+      font-size: 10px; font-weight: 800; letter-spacing: 2px;
+      color: #b9935a; text-transform: uppercase; margin-bottom: 10px; display: block;
+    }
+    .pricing-header h2 {
+      font-family: serif; font-size: 32px; margin-bottom: 10px; font-style: italic;
+    }
+    .pricing-header p {
+      color: #888; font-size: 14px; max-width: 500px; margin: 0 auto; line-height: 1.6;
+    }
+    .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .pricing-card {
+      background: #111; border: 1px solid #222; border-radius: 12px;
+      padding: 20px; display: flex; flex-direction: column;
+    }
+    .pricing-card.pro-card {
+      background: linear-gradient(180deg, #161616 0%, #0d0d0d 100%);
+      border: 1px solid #333;
+    }
+    .card-icon { margin-bottom: 15px; color: #fff; }
+    .pricing-card h3 { font-family: serif; font-size: 24px; margin-bottom: 5px; font-style: italic; }
+    .plan-desc { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 15px; }
+    .price { font-size: 32px; font-weight: 900; margin-bottom: 2px; }
+    .price-desc { font-size: 12px; color: #888; margin-bottom: 20px; }
+    
+    .btn-plan {
+      width: 100%; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 700;
+      text-transform: uppercase; cursor: pointer; border: none; margin-bottom: 20px;
+    }
+    .btn-plan-free { background: #f4f0ec; color: #000; }
+    .btn-plan-pro { background: #f4f0ec; color: #000; }
+    
+    .features-list h4 { font-size: 12px; font-weight: 800; margin-bottom: 10px; color: #fff; }
+    .features-list ul { list-style: none; padding: 0; margin: 0; }
+    .features-list li {
+      font-size: 12px; color: #ccc; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.4;
+    }
+    .features-list li svg { width: 16px; height: 16px; color: #fff; flex-shrink: 0; margin-top: 2px; }
+    
+    @media (max-width: 768px) {
+      .pricing-cards { grid-template-columns: 1fr; }
+      .pricing-modal { padding: 20px; }
+    }
 
     /* ========== HIDDEN ========== */
     .hidden { display: none !important; }
   </style>
+
+  
+  <meta name="google-redirect-uri" content="http://localhost:3000/">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 
+  <!-- Home page background layer -->
+  <div id="page-bg"></div>
+  <!-- Landing page background layer (shown behind auth gate) -->
+  <div id="landing-bg"></div>
+
+
+  <!-- ==================== AUTH GATE ==================== -->
+  <div id="auth-gate" class="fixed inset-0 z-[200] backdrop-blur-sm hidden items-center justify-center p-4" style="color:white; font-family:Inter,sans-serif; background: rgba(0,0,0,0.75);">
+    <div class="w-full max-w-md border border-white/10 bg-[#0d0d0d] p-8 shadow-2xl relative">
+      <button type="button" id="btn-auth-close" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="mb-8">
+        <div class="text-xs uppercase tracking-[0.3em] text-gray-500 font-bold mb-3">Pinbox Access</div>
+        <h1 class="text-3xl font-black uppercase tracking-tight mb-3">Sign In</h1>
+        <p class="text-sm text-gray-400">Continue with a verified provider, then complete your profile.</p>
+      </div>
+
+      <div id="auth-provider-step" class="space-y-3">
+        <button type="button" id="btn-google-continue" class="w-full py-4 flex items-center justify-center gap-3 font-bold text-sm uppercase tracking-widest transition-all duration-200" style="background:#fff; color:#111; border:none; cursor:pointer; letter-spacing:0.08em;">
+          <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+        <div id="auth-google-error" class="hidden text-sm text-red-400 leading-relaxed pt-1"></div>
+
+        <div class="flex items-center gap-3 py-1">
+          <div class="flex-1 h-px bg-white/10"></div>
+          <span class="text-xs text-gray-600 uppercase tracking-widest">or</span>
+          <div class="flex-1 h-px bg-white/10"></div>
+        </div>
+
+        <button type="button" id="btn-show-referral" class="w-full py-4 flex items-center justify-center gap-3 font-bold" style="background:transparent; border:1px solid rgba(255,255,255,0.3); color:white; text-transform:uppercase;">
+          <i data-lucide="ticket" class="w-5 h-5"></i> Have a Referral Code?
+        </button>
+      </div>
+
+      <div id="auth-referral-step" class="hidden space-y-4">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-8 h-8 flex items-center justify-center border border-white/20 shrink-0">
+            <i data-lucide="ticket" class="w-4 h-4 text-white"></i>
+          </div>
+          <div>
+            <div class="font-bold text-sm">Team Referral Code</div>
+            <div class="text-xs text-gray-400">Enter your code to get instant access.</div>
+          </div>
+        </div>
+        <input type="text" id="auth-referral-input" class="app-input uppercase tracking-[0.3em] text-center text-lg font-bold font-mono" placeholder="TEAM-XXXXXX" style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white;">
+        <div id="auth-referral-error" class="hidden text-sm text-red-400 pt-1"></div>
+        <div class="flex gap-3 pt-1 mt-4">
+          <button type="button" id="btn-referral-back" style="padding:0.75rem 1.5rem; background:transparent; border:1px solid rgba(255,255,255,0.3); color:white;">← Back</button>
+          <button type="button" id="btn-verify-referral" style="flex:1; background:white; color:black; font-weight:bold;">Verify &amp; Continue</button>
+        </div>
+      </div>
+
+      <div id="auth-profile-step" class="hidden">
+        <div class="mb-5 text-sm text-gray-400">Connected with <span id="auth-provider-label" class="text-white font-bold">Provider</span>. Complete profile to continue.</div>
+        <form id="auth-profile-form" class="space-y-4">
+          <input type="hidden" id="auth-provider-input">
+          <input type="hidden" id="auth-referral-code">
+          <input type="text" id="auth-fullname" class="app-input" placeholder="Full Name" required style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; margin-bottom:10px;">
+          <input type="text" id="auth-username" class="app-input" placeholder="Username (unique)" required style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; margin-bottom:10px;">
+          <input type="email" id="auth-email" class="app-input" placeholder="Email" required style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; margin-bottom:10px;">
+          <input type="tel" id="auth-mobile" class="app-input" placeholder="Mobile" required style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; margin-bottom:10px;">
+          <input type="number" id="auth-age" class="app-input" placeholder="Age" min="13" max="120" required style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; margin-bottom:10px;">
+          <textarea id="auth-purpose" class="app-input min-h-[96px] resize-none" placeholder="Purpose" required style="width:100%; padding:0.75rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:white; margin-bottom:10px;"></textarea>
+          <div id="auth-error" class="hidden text-sm text-red-400"></div>
+          <div class="flex gap-3 pt-2">
+            <button type="button" id="btn-auth-back" style="padding:0.75rem 1.5rem; background:transparent; border:1px solid rgba(255,255,255,0.3); color:white;">Back</button>
+            <button type="submit" style="flex:1; background:white; color:black; font-weight:bold;">Enter Pinbox</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Landing Page -->
+  <div id="pinboxx-landing" class="fixed inset-0 z-[195] flex flex-col font-sans" style="background: transparent;">
+    <header style="position:absolute;top:0;left:0;right:0;padding:2rem;display:flex;justify-content:space-between;align-items:center;z-index:10;">
+      <div style="font-size:1.25rem;font-weight:900;letter-spacing:0.1em;color:white;">PINBOX</div>
+      <button id="btn-open-login" onclick="openPinboxxAuthGate()" class="btn-animated-border" style="padding:0.75rem 2rem;font-size:0.8rem;">LOGIN</button>
+    </header>
+    
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;position:relative;z-index:10;">
+      <h1 style="color:#ffffff; font-size:clamp(60px,12vw,140px);font-weight:900;line-height:0.9;text-transform:uppercase;letter-spacing:-3px;text-shadow:0 2px 20px rgba(0,0,0,0.8);">
+        PRIVATE<br>INBOX<span style="color:#10b981;">.</span>
+      </h1>
+      <p style="color:#ffffff;font-size:1.1rem;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin:1.5rem 0 2.5rem;text-shadow:0 1px 8px rgba(0,0,0,0.9);">Instantly. Securely. Anonymously.</p>
+      <button onclick="openPinboxxAuthGate()" class="btn-animated-border" style="padding:1rem 3rem;font-size:0.9rem;font-weight:800;">GET STARTED</button>
+    </div>
+    
+    <footer class="relative z-10 w-full bg-black/20 backdrop-blur-md text-white/60 py-4 px-8 mt-auto font-sans" style="border-top: 1px solid #1a1a1a; margin-top: 80px;">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-semibold uppercase tracking-widest">
+    
+    <!-- Left: Copyright & Links -->
+    <div class="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+      <span class="text-white">&copy; 2026 PINBOX</span>
+      <div class="flex gap-4">
+        <a href="/docs.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Docs</a>
+        <a href="/privacy.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Privacy</a>
+        <a href="/terms.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Terms</a>
+      </div>
+    </div>
+
+    <!-- Center: Tagline -->
+    <div class="hidden lg:block text-white/30 tracking-[0.2em]">
+      The innovations made for privacy.
+    </div>
+
+    <!-- Right: Socials -->
+    <div class="flex items-center gap-6">
+      <div class="flex gap-4 items-center">
+        <a href="https://x.com/aiplexofficial" target="_blank" title="X (Twitter)" style="color: inherit; display: block; height: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/in/aiplexofficial/" target="_blank" title="LinkedIn" style="color: inherit; display: block; height: 16px;">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" style="width:16px;height:16px;filter:invert(1);display:block;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" alt="LinkedIn">
+        </a>
+        <a href="https://www.instagram.com/aiplexofficial" target="_blank" title="Instagram" style="color: inherit; display: block; height: 16px;">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/instagram.svg" style="width:16px;height:16px;filter:invert(1);display:block;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" alt="Instagram">
+        </a>
+        <a href="https://www.youtube.com/@aiplex_official" target="_blank" title="YouTube" style="color: inherit; display: block; height: 16px;">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/youtube.svg" style="width:16px;height:16px;filter:invert(1);display:block;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" alt="YouTube">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </div>
+
+<div id="pinboxx-app" style="display:none;">
 <div class="app">
   <!-- Nav -->
   <nav class="nav">
@@ -510,11 +854,30 @@
       <i data-lucide="zap" style="width:18px;height:18px;"></i>
       Pinbox
     </div>
+    
     <div class="nav-links">
       <a class="nav-link" onclick="toggleHistory()">History</a>
       <a class="nav-link" onclick="refreshInbox()">Refresh</a>
       <a class="nav-link" onclick="destroySession()">Reset</a>
+      <a class="btn-nav-premium" onclick="openPricingModal()">Try Premium</a>
+      
+      <div id="avatar-wrapper" style="position:relative;margin-left:15px;display:none;">
+        <button id="btn-avatar" style="width:36px;height:36px;border-radius:50%;background:#fff;color:#000;font-weight:800;font-size:0.95rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;letter-spacing:0;">U</button>
+        <div id="avatar-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 10px);width:220px;background:#0f0f0f;border:1px solid #1e1e1e;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.7);z-index:9999;overflow:hidden;">
+          <div style="padding:14px 16px 12px;border-bottom:1px solid #1a1a1a;">
+            <div id="dropdown-username-display" style="font-size:0.8rem;color:#888;font-weight:500;letter-spacing:0.02em;">@username</div>
+            <div id="dropdown-plan-badge" style="font-size:0.82rem;color:#fff;font-weight:700;margin-top:3px;">Free Plan</div>
+          </div>
+          <div style="padding:8px 6px;">
+            <button id="btn-user-logout" style="width:100%;text-align:left;background:none;border:none;color:#e62e2d;font-size:0.82rem;cursor:pointer;padding:8px 10px;border-radius:6px;display:flex;align-items:center;gap:8px;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background='#1a0505'" onmouseout="this.style.background='none'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+
   </nav>
 
   <!-- Hero Section -->
@@ -570,8 +933,8 @@
     </div>
 
     <div id="inboxContent">
-      <div class="empty-inbox" id="emptyInbox" style="padding: 100px 0; border: 1px dashed var(--border);">
-        <div class="icon" style="margin-bottom: 20px;"><i data-lucide="mail" style="width:40px;height:40px;opacity:0.2"></i></div>
+      <div class="empty-inbox flex flex-col items-center justify-center" id="emptyInbox" style="padding: 100px 0; border: 1px dashed var(--border); text-align: center;">
+        <div class="icon flex items-center justify-center" style="margin-bottom: 20px;"><i data-lucide="mail" style="width:40px;height:40px;opacity:0.2"></i></div>
         <h4 style="text-transform: uppercase; letter-spacing: 2px; font-size: 12px; color: var(--text-muted)">Awaiting correspondence...</h4>
       </div>
       <div class="email-list" id="emailList" style="display: grid; grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--border);"></div>
@@ -601,22 +964,75 @@
   <div class="nav hidden" id="actionsBar" style="border-top: 1px solid var(--border); border-bottom: none; margin-top: 80px; padding: 40px 0;">
     <div class="nav-links" style="width: 100%; justify-content: space-between;">
       <button class="btn btn-outline btn-sm" onclick="refreshInbox()"><i data-lucide="refresh-cw"></i> Sync</button>
-      <button class="btn btn-outline btn-sm" onclick="simulateEmail()" style="border-style: dashed;"><i data-lucide="test-tube"></i> Terminal Test</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleQrModal()"><i data-lucide="qr-code"></i> Identify QR</button>
       <button class="btn btn-danger btn-sm" onclick="destroySession()"><i data-lucide="trash-2"></i> Terminate</button>
     </div>
   </div>
 </div>
 
+<footer class="relative z-10 w-full bg-black/20 backdrop-blur-md text-white/60 py-4 px-8 mt-auto font-sans" style="border-top: 1px solid #1a1a1a; margin-top: 80px;">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-semibold uppercase tracking-widest">
+    
+    <!-- Left: Copyright & Links -->
+    <div class="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+      <span class="text-white">&copy; 2026 PINBOX</span>
+      <div class="flex gap-4">
+        <a href="/docs.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Docs</a>
+        <a href="/privacy.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Privacy</a>
+        <a href="/terms.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Terms</a>
+      </div>
+    </div>
+
+    <!-- Center: Tagline -->
+    <div class="hidden lg:block text-white/30 tracking-[0.2em]">
+      The innovations made for privacy.
+    </div>
+
+    <!-- Right: Socials -->
+    <div class="flex items-center gap-6">
+      <div class="flex gap-4 items-center">
+        <a href="https://x.com/aiplexofficial" target="_blank" title="X (Twitter)" style="color: inherit; display: block; height: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/in/aiplexofficial/" target="_blank" title="LinkedIn" style="color: inherit; display: block; height: 16px;">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" style="width:16px;height:16px;filter:invert(1);display:block;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" alt="LinkedIn">
+        </a>
+        <a href="https://www.instagram.com/aiplexofficial" target="_blank" title="Instagram" style="color: inherit; display: block; height: 16px;">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/instagram.svg" style="width:16px;height:16px;filter:invert(1);display:block;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" alt="Instagram">
+        </a>
+        <a href="https://www.youtube.com/@aiplex_official" target="_blank" title="YouTube" style="color: inherit; display: block; height: 16px;">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/youtube.svg" style="width:16px;height:16px;filter:invert(1);display:block;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" alt="YouTube">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</div>
+</div>
 <!-- History Overlay -->
 <div class="history-overlay" id="historyOverlay" onclick="closeHistoryOverlay(event)">
   <div class="history-card" onclick="event.stopPropagation()">
     <div class="history-header">
-      <h4>📜 Email History</h4>
+      <h4>Email History</h4>
       <span class="close-history" onclick="toggleHistory()">×</span>
     </div>
     <div class="history-content" id="historyContent">
       <!-- Items injected via JS -->
     </div>
+  </div>
+</div>
+
+<!-- QR Identity Modal -->
+<div class="qr-overlay" id="qrOverlay" onclick="toggleQrModal()">
+  <div class="qr-modal" onclick="event.stopPropagation()">
+    <h4>Identity Verification</h4>
+    <div class="qr-code-box">
+      <img id="qrCodeImg" src="" alt="QR Code">
+    </div>
+    <div class="qr-email" id="qrEmailText">Loading...</div>
+    <div class="qr-faint-text"><i data-lucide="qr-code" style="width: 14px; height: 14px;"></i> Identity QR</div>
+    <button class="btn-close-qr" onclick="toggleQrModal()">Close</button>
   </div>
 </div>
 
@@ -632,7 +1048,7 @@
 // STATE
 // ============================
 let state = {
-  provider: 'vrushabhudepurkar.tech',
+  provider: 'aiplex.app',
   email: null,
   messages: [],
   otpFound: null,
@@ -641,11 +1057,65 @@ let state = {
   pollInterval: null,
   timerInterval: null,
   seenIds: new Set(),
-  magicLinks: [],       // Detected magic link URLs
+  magicLinks: [],
   magicLinkResolved: false,
 };
 
 const API = '/api/tempmail';
+
+// TRACKING HELPER — returns true if allowed, false if limit hit (and opens pricing modal) or account restricted
+async function trackAction(action) {
+  if (typeof getPinboxxUserSession === 'function') {
+    const session = getPinboxxUserSession();
+    if (session) {
+      if (session.status === 'banned') {
+        toast("Your account is banned", "error");
+        return false;
+      }
+      if (session.status === 'suspended') {
+        let msg = "Your account is suspended.";
+        if (session.suspendedUntil) {
+          const diffMs = new Date(session.suspendedUntil) - new Date();
+          const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+          if (diffHours > 0) {
+            msg = `YOUR ACCOUNT SUSPENDED TEMPORARILY TILL ${diffHours} HOURS.`;
+          }
+        }
+        toast(msg, "error");
+        return false;
+      }
+    }
+  }
+
+  const token = typeof getToken === "function" ? getToken() : "";
+  if (!token) return true; // not logged in, let it pass (auth middleware handles it)
+  try {
+    const res = await fetch(`${API}/track`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json();
+    if (res.status === 403) {
+      if (data.error === "LimitReached") {
+        // Show the pricing modal instead of a plain toast
+        openPricingModal();
+        return false; // blocked
+      }
+      if (data.error) {
+        toast(data.error, "error");
+        return false; // blocked
+      }
+    }
+    return true; // allowed
+  } catch (err) {
+    console.error('Failed to track action', err);
+    return true; // fail open — don't block the user on network errors
+  }
+}
 
 // ============================
 // GENERATE EMAIL
@@ -659,24 +1129,27 @@ async function generateEmail() {
   spinner.classList.remove('hidden');
   text.textContent = 'Generating...';
 
-  // Stop any existing poll
   clearInterval(state.pollInterval);
   clearInterval(state.timerInterval);
 
   try {
-    const domain = "vrushabhudepurkar.tech";
-    const username = generateRandomString(8);
+    // CHECK LIMIT FIRST — if blocked, trackAction opens the pricing modal
+    const allowed = await trackAction('emailsGenerated');
+    if (!allowed) {
+      // Limit hit — pricing modal is already open, restore button state
+      return;
+    }
+
+    const domain = "aiplex.app";
+    const username = generateRandomString(12);
     const address = `${username}@${domain}`;
 
-    state.provider = 'vrushabhudepurkar.tech';
+    state.provider = 'aiplex.app';
     state.email = address;
     state.messages = [];
     state.seenIds = new Set();
     
-    // RECORD TO HISTORY
     addToHistory(address);
-    
-    // Success! Show UI
     showEmailActive();
     startTimer();
     startPolling();
@@ -692,8 +1165,6 @@ async function generateEmail() {
   }
 }
 
-// MailTM and 1Secmail creation logic removed for custom domain setup
-
 // ============================
 // POLLING
 // ============================
@@ -704,7 +1175,10 @@ function startPolling() {
 
 async function fetchMessages() {
   try {
-    const res = await fetch(`${API}/messages?email=${state.email}`);
+    const token = typeof getToken === "function" ? getToken() : "";
+    const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+    const res = await fetch(`${API}/messages?email=${state.email}`, { headers });
+    if (res.status === 403 || res.status === 401) { clearInterval(state.pollInterval); toast("Your account is restricted.", "error"); return; }
     if (!res.ok) throw new Error("Failed to fetch messages");
     const data = await res.json();
     const messages = data.messages || [];
@@ -1020,7 +1494,11 @@ function updateInboxUI() {
   lucide.createIcons();
 }
 
-function showOTPBanner(otp) {
+async function showOTPBanner(otp) {
+  // CHECK OTP LIMIT FIRST — opens pricing modal and stops if free user has hit 6
+  const allowed = await trackAction('otpRetrieved');
+  if (!allowed) return;
+
   const banner = document.getElementById('otpBanner');
   document.getElementById('otpCode').textContent = otp;
   banner.classList.add('active');
@@ -1139,7 +1617,7 @@ async function refreshInbox() {
 function destroySession() {
   clearInterval(state.pollInterval);
   clearInterval(state.timerInterval);
-  state = { provider: 'vrushabhudepurkar.tech', email: null, messages: [], otpFound: null, otpCount: 0, startTime: null, pollInterval: null, timerInterval: null, seenIds: new Set(), magicLinks: [], magicLinkResolved: false };
+  state = { provider: 'aiplex.app', email: null, messages: [], otpFound: null, otpCount: 0, startTime: null, pollInterval: null, timerInterval: null, seenIds: new Set(), magicLinks: [], magicLinkResolved: false };
 
   document.getElementById('emailDisplay').classList.remove('active');
   try { document.getElementById('statsBar').classList.add('hidden'); } catch(e) {}
@@ -1193,7 +1671,9 @@ function simulateEmail() {
 // ============================
 function generateRandomString(len) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const array = new Uint32Array(len);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, (num) => chars[num % chars.length]).join('');
 }
 
 function escapeHtml(str) {
@@ -1254,6 +1734,16 @@ function closeHistoryOverlay(e) {
   document.getElementById('historyOverlay').classList.remove('active');
 }
 
+function toggleQrModal() {
+  const overlay = document.getElementById('qrOverlay');
+  const isActive = overlay.classList.toggle('active');
+  
+  if (isActive && state.email) {
+    document.getElementById('qrEmailText').textContent = state.email;
+    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(state.email)}`;
+  }
+}
+
 function renderHistory() {
   const container = document.getElementById('historyContent');
   if (historyData.length === 0) {
@@ -1275,6 +1765,242 @@ lucide.createIcons();
 
 
 </script>
+
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="js/storage.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+  function initPinboxx() {
+    const landing = document.getElementById('pinboxx-landing');
+    const app = document.getElementById('pinboxx-app');
+    const path = window.location.pathname;
+
+    // If user navigated to /logout, clear session and go to landing
+    if (path === '/logout') {
+      clearToken();
+      sessionStorage.removeItem('pinboxx_user_session');
+      history.replaceState(null, '', '/landingpage');
+      if (landing) landing.style.display = 'flex';
+      if (app) app.style.display = 'none';
+      return;
+    }
+    
+    if (isPinboxxAuthenticated()) {
+      if (path !== '/home') history.replaceState(null, '', '/home');
+      if (landing) landing.style.display = 'none';
+      if (app) app.style.display = 'block';
+      updateAvatarUI();
+      if (typeof showHomeBg === 'function') showHomeBg();
+    } else {
+      // Any non-home path when not logged in → show landing
+      if (path !== '/landingpage') history.replaceState(null, '', '/landingpage');
+      if (landing) landing.style.display = 'flex';
+      if (app) app.style.display = 'none';
+      if (typeof showLandingBg === 'function') showLandingBg();
+    }
+  }
+  
+  function renderDashboard() {
+    initPinboxx();
+  }
+  
+  // Cache of background settings
+  window._pinboxxBgSettings = { landingBackgroundUrl: null, homeBackgroundUrl: null };
+
+  function applyPinboxxBg(type) {
+    const url = window._pinboxxBgSettings[type];
+    const isLanding = (type === 'landingBackgroundUrl');
+    const bgDiv = document.getElementById(isLanding ? 'landing-bg' : 'page-bg');
+    const oldVideo = document.getElementById(isLanding ? 'bg-video-landing' : 'bg-video-home');
+    if (oldVideo) oldVideo.remove();
+
+    if (!url) {
+      if (bgDiv) { bgDiv.style.backgroundImage = 'none'; bgDiv.style.display = 'none'; }
+      return;
+    }
+
+    if (url.match(/\.(mp4|webm)$/i)) {
+      if (bgDiv) { bgDiv.style.backgroundImage = 'none'; bgDiv.style.display = isLanding ? 'block' : 'block'; }
+      const video = document.createElement('video');
+      video.id = isLanding ? 'bg-video-landing' : 'bg-video-home';
+      video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
+      const zIdx = isLanding ? 189 : -11;
+      video.style.cssText = `position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:${zIdx};opacity:0.5;pointer-events:none;`;
+      video.innerHTML = `<source src="${url}" type="video/mp4">`;
+      document.body.prepend(video);
+    } else {
+      if (bgDiv) {
+        bgDiv.style.backgroundImage = `url('${url}')`;
+        bgDiv.style.display = 'block';
+      }
+    }
+  }
+
+  function showLandingBg() {
+    const lb = document.getElementById('landing-bg');
+    if (lb) lb.style.display = 'block';
+    const hv = document.getElementById('bg-video-home');
+    if (hv) hv.style.display = 'none';
+  }
+
+  function showHomeBg() {
+    const lb = document.getElementById('landing-bg');
+    if (lb) lb.style.display = 'none';
+    const lv = document.getElementById('bg-video-landing');
+    if (lv) lv.style.display = 'none';
+    const hv = document.getElementById('bg-video-home');
+    if (hv) hv.style.display = 'block';
+  }
+
+  async function fetchSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      window._pinboxxBgSettings.landingBackgroundUrl = data.landingBackgroundUrl || null;
+      window._pinboxxBgSettings.homeBackgroundUrl = data.homeBackgroundUrl || null;
+
+      // Apply both backgrounds
+      applyPinboxxBg('landingBackgroundUrl');
+      applyPinboxxBg('homeBackgroundUrl');
+
+      // Show the correct one based on current auth state
+      if (typeof isPinboxxAuthenticated === 'function' && isPinboxxAuthenticated()) {
+        showHomeBg();
+      } else {
+        showLandingBg();
+      }
+    } catch (e) {
+      console.error('Failed to fetch settings:', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchSettings();
+    initPinboxxAuthGate();
+    initPinboxx();
+    lucide.createIcons();
+  });
+  </script>
+
+<script>
+// Pricing Modal Logic
+function openPricingModal() {
+  document.getElementById('pricingModal').classList.add('active');
+  updateProButtonState(); // refresh state every time modal opens
+}
+function closePricingModal() {
+  document.getElementById('pricingModal').classList.remove('active');
+}
+
+// Updates the Pro button based on the user's current plan
+function updateProButtonState() {
+  const btn = document.getElementById('btn-pinboxx-buy-pro');
+  if (!btn) return;
+
+  const session = (typeof getPinboxxUserSession === 'function')
+    ? getPinboxxUserSession()
+    : null;
+
+  const plan = session?.plan || 'free';
+  const isPaid = plan === 'pro' || plan === 'premium';
+
+  if (isPaid) {
+    btn.textContent  = 'Pro Plan Active ✓';
+    btn.disabled     = true;
+    btn.style.opacity       = '0.6';
+    btn.style.cursor        = 'not-allowed';
+    btn.style.background    = '#10b981';
+    btn.style.color         = '#000';
+    btn.style.border        = '1px solid #10b981';
+    btn.onclick = null; // remove click handler
+  } else {
+    // Reset to default in case user just logged out / downgraded
+    btn.textContent  = 'Upgrade to Pro';
+    btn.disabled     = false;
+    btn.style.opacity       = '';
+    btn.style.cursor        = '';
+    btn.style.background    = '';
+    btn.style.color         = '';
+    btn.style.border        = '';
+    btn.onclick = () => initiateRazorpayCheckout({ amountINR: 299, plan: 'pro', description: 'Pinboxx Pro Plan – ₹299/month' });
+  }
+
+  // ── Navbar Premium button ────────────────────────────────────────────────
+  const navBtns = document.querySelectorAll('.btn-nav-premium');
+  navBtns.forEach(navBtn => {
+    if (isPaid) {
+      navBtn.textContent = 'Premium';
+      navBtn.style.cursor = 'pointer'; // keep clickable
+    } else {
+      navBtn.textContent = 'Try Premium';
+      navBtn.style.cursor = 'pointer';
+    }
+  });
+}
+
+// Run once on page load so state is correct even before modal opens
+document.addEventListener('DOMContentLoaded', updateProButtonState);
+</script>
+
+<!-- Pricing Modal -->
+<div class="pricing-overlay" id="pricingModal" onclick="closePricingModal()">
+  <div class="pricing-modal" onclick="event.stopPropagation()">
+    <button class="pricing-close" onclick="closePricingModal()">×</button>
+    
+    <div class="pricing-header">
+      <span class="pricing-badge">PINBOX PREMIUM</span>
+      <h2>Pricing</h2>
+      <p>Keep creating emails, checking OTPs, and moving through rate limits without breaking your workflow.</p>
+    </div>
+
+    <div class="pricing-cards">
+      <!-- Free Card -->
+      <div class="pricing-card">
+        <div class="card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <h3>Free</h3>
+        <p class="plan-desc">Start with Pinbox</p>
+        <div class="price">&#8377; 0</div>
+        <p class="price-desc">Free for everyone</p>
+        <button class="btn-plan btn-plan-free" onclick="closePricingModal()">Continue Free</button>
+        
+        <div class="features-list">
+          <h4>Included for free users:</h4>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 20 Generate Email chances</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 6 Successful OTP Extractions</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Basic Disposable Emails with Limitations</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Pro Card -->
+      <div class="pricing-card pro-card">
+        <div class="card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <h3>Pro</h3>
+        <p class="plan-desc">For everyday AI productivity</p>
+        <div class="price">&#8377; 299</div>
+        <p class="price-desc">Per month</p>
+        <button class="btn-plan btn-plan-pro" id="btn-pinboxx-buy-pro" onclick="initiateRazorpayCheckout({ amountINR: 299, plan: 'pro', description: 'Pinboxx Pro Plan – ₹299/month' })">Upgrade to Pro</button>
+        
+        <div class="features-list">
+          <h4>Everything in Free, plus:</h4>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Unlimited Email Generation</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Unlimited OTP Extraction</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Premium Support</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Priority Server Access</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Razorpay checkout module. KEY_SECRET never reaches this layer. -->
+<script src="js/razorpay-checkout.js?v=1"></script>
 
 </body>
 </html>

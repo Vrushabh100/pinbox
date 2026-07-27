@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentation — Pinbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg: #000; --fg: #fff; --muted: #888; --border: #1a1a1a; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; line-height: 1.7; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 24px 48px; border-bottom: 1px solid var(--border); }
+    nav .logo { font-size: 18px; font-weight: 900; letter-spacing: -1px; text-decoration: none; color: #fff; }
+    nav a.back { font-size: 12px; color: var(--muted); text-decoration: none; text-transform: uppercase; letter-spacing: 2px; transition: color 0.2s; }
+    nav a.back:hover { color: #fff; }
+    .hero { padding: 100px 48px 60px; max-width: 900px; margin: 0 auto; }
+    .hero .badge { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 900; line-height: 1; letter-spacing: -3px; margin-bottom: 24px; }
+    .hero .lead { font-size: 16px; color: var(--muted); max-width: 600px; }
+    .layout { display: grid; grid-template-columns: 220px 1fr; gap: 0; max-width: 1100px; margin: 0 auto; padding: 0 48px 120px; }
+    .sidebar { border-right: 1px solid var(--border); padding-right: 40px; padding-top: 8px; }
+    .sidebar nav-item { display: block; }
+    .sidebar a { display: block; font-size: 13px; color: var(--muted); text-decoration: none; padding: 8px 0; transition: color 0.2s; }
+    .sidebar a:hover, .sidebar a.active { color: #fff; }
+    .sidebar h5 { font-size: 10px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 2px; margin: 24px 0 8px; }
+    .docs { padding-left: 60px; }
+    .section { margin-bottom: 64px; }
+    .section h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 16px; }
+    .section h3 { font-size: 16px; font-weight: 700; margin: 28px 0 10px; }
+    .section p { font-size: 15px; color: #aaa; margin-bottom: 16px; }
+    .section ul { padding-left: 24px; color: #aaa; font-size: 15px; }
+    .section ul li { margin-bottom: 8px; }
+    .code-block { background: #0a0a0a; border: 1px solid var(--border); border-radius: 6px; padding: 20px 24px; font-family: 'Courier New', monospace; font-size: 13px; color: #ccc; margin: 16px 0; overflow-x: auto; }
+    .step { display: flex; gap: 16px; margin-bottom: 24px; align-items: flex-start; }
+    .step-num { background: #fff; color: #000; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; flex-shrink: 0; margin-top: 2px; }
+    .step-body h3 { margin-top: 0; }
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; display: flex; justify-content: space-between; }
+    footer div { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">PINBOX</a>
+    <a href="/" class="back">← Back to App</a>
+  </nav>
+
+  <div class="hero">
+    <div class="badge">Docs · Getting Started</div>
+    <h1>Documentation</h1>
+    <p class="lead">Everything you need to know about using Pinbox — the privacy-first temporary email platform.</p>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <h5>Getting Started</h5>
+      <a href="#intro" class="active">Introduction</a>
+      <a href="#generate">Generate an Email</a>
+      <a href="#inbox">Using the Inbox</a>
+      <h5>Features</h5>
+      <a href="#otp">OTP Extraction</a>
+      <a href="#magic">Magic Links</a>
+      <a href="#qr">QR Code</a>
+      <a href="#history">History</a>
+      <h5>Account</h5>
+      <a href="#auth">Authentication</a>
+      <a href="#plans">Plans</a>
+      <h5>Legal</h5>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms of Service</a>
+    </div>
+
+    <div class="docs">
+      <div class="section" id="intro">
+        <h2>Introduction</h2>
+        <p>Pinbox is a privacy-first temporary email service. It lets you generate instant disposable email addresses to receive messages, extract OTPs, and resolve magic links — all without giving away your real email address.</p>
+        <p>Pinbox is ideal for signing up to new services, verifying accounts, receiving one-time codes, and anything else you'd rather not associate with your personal inbox.</p>
+      </div>
+
+      <div class="section" id="generate">
+        <h2>Generate an Email</h2>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Click "Generate Email Address"</h3>
+            <p>On the Pinbox app screen, tap the primary button to instantly generate a disposable email address at the <strong>vrushabhudepurkar.tech</strong> domain.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Copy your address</h3>
+            <p>Once generated, your email address is displayed prominently. Click "Copy" to copy it to your clipboard instantly.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Use it anywhere</h3>
+            <p>Paste the address into any signup form. Pinbox will receive emails sent to it in real time.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="inbox">
+        <h2>Using the Inbox</h2>
+        <p>Once an email is active, your inbox automatically polls for new messages every 3 seconds. When an email arrives, you'll see it appear in the inbox list immediately.</p>
+        <p>Tap any email in the list to open the full message, including HTML-rendered body content.</p>
+      </div>
+
+      <div class="section" id="otp">
+        <h2>OTP Extraction</h2>
+        <p>Pinbox automatically scans incoming emails for numeric OTP codes (4–8 digits) using pattern recognition. When detected, the code is displayed in a prominent banner at the top of the screen and can be copied with one tap.</p>
+      </div>
+
+      <div class="section" id="magic">
+        <h2>Magic Link Resolution</h2>
+        <p>Some services send a "magic link" instead of a numeric code — a URL you click to verify your account. Pinbox detects these links, allows you to resolve them server-side, and extracts any verification code from the destination page.</p>
+        <p>This works for services like Claude AI, Notion, and others that use link-based authentication.</p>
+      </div>
+
+      <div class="section" id="auth">
+        <h2>Authentication</h2>
+        <p>Sign up with a username and password. You can also use <strong>Google Sign-In</strong> for faster access. Your account is used to track your usage stats and manage your plan.</p>
+        <p>Sessions are secured with JWT tokens and expire automatically to protect your account.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>© 2026 Pinbox. All rights reserved.</div>
+    <div>The innovations made for privacy.</div>
+  </footer>
+</body>
+</html>
