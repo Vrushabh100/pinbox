@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-P53LP40VXM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-P53LP40VXM');
+  </script>
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "xv57mnrir9");
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Documentation — Pinbox</title>
@@ -48,7 +65,7 @@
   <div class="hero">
     <div class="badge">Docs · Getting Started</div>
     <h1>Documentation</h1>
-    <p class="lead">Everything you need to know about using Pinbox — the privacy-first temporary email platform.</p>
+    <p class="lead">Everything you need to know about using Pinbox, the privacy-first disposable email platform.</p>
   </div>
 
   <div class="layout">
@@ -73,7 +90,7 @@
     <div class="docs">
       <div class="section" id="intro">
         <h2>Introduction</h2>
-        <p>Pinbox is a privacy-first temporary email service. It lets you generate instant disposable email addresses to receive messages, extract OTPs, and resolve magic links — all without giving away your real email address.</p>
+        <p>Pinbox is a privacy-first temporary email service. It lets you generate instant disposable email addresses to receive messages, extract OTPs, and resolve magic links, all without giving away your real email address.</p>
         <p>Pinbox is ideal for signing up to new services, verifying accounts, receiving one-time codes, and anything else you'd rather not associate with your personal inbox.</p>
       </div>
 
@@ -83,7 +100,7 @@
           <div class="step-num">1</div>
           <div class="step-body">
             <h3>Click "Generate Email Address"</h3>
-            <p>On the Pinbox app screen, tap the primary button to instantly generate a disposable email address at the <strong>vrushabhudepurkar.tech</strong> domain.</p>
+            <p>On the Pinbox app screen, tap the primary button to instantly generate a disposable email address at the <strong>aiplex.app</strong> domain.</p>
           </div>
         </div>
         <div class="step">
@@ -104,31 +121,109 @@
 
       <div class="section" id="inbox">
         <h2>Using the Inbox</h2>
-        <p>Once an email is active, your inbox automatically polls for new messages every 3 seconds. When an email arrives, you'll see it appear in the inbox list immediately.</p>
-        <p>Tap any email in the list to open the full message, including HTML-rendered body content.</p>
+        <p>Once an email is active, new messages appear in your inbox instantly as they arrive.</p>
+        <p>Tap any email in the list to open the full message, including the full message with images and formatting.</p>
       </div>
 
       <div class="section" id="otp">
         <h2>OTP Extraction</h2>
-        <p>Pinbox automatically scans incoming emails for numeric OTP codes (4–8 digits) using pattern recognition. When detected, the code is displayed in a prominent banner at the top of the screen and can be copied with one tap.</p>
+        <p>Pinbox automatically scans incoming emails for verification codes using smart scanning. When detected, the code is displayed in a prominent banner at the top of the screen and can be copied with one tap.</p>
       </div>
 
       <div class="section" id="magic">
         <h2>Magic Link Resolution</h2>
-        <p>Some services send a "magic link" instead of a numeric code — a URL you click to verify your account. Pinbox detects these links, allows you to resolve them server-side, and extracts any verification code from the destination page.</p>
-        <p>This works for services like Claude AI, Notion, and others that use link-based authentication.</p>
+        <p>Some services send a "magic link" instead of a numeric code  a URL you click to verify your account. Pinbox detects these links and opens them safely for you, automatically finding any verification codes inside.</p>
+        <p>This works for applications,live websites,ai services and others that use link-based authentication.</p>
+      </div>
+
+      <div class="section" id="qr">
+        <h2>QR Code</h2>
+        <p>Every temporary email address you generate comes with a unique QR code. This makes it easy to share your temporary email with other devices or use it across platforms.</p>
+
+        <h3>How to use QR codes:</h3>
+        <ul>
+          <li><strong>Scan with your phone</strong>    Use any QR scanner app to quickly copy the email address to your mobile device</li>
+          <li><strong>Share with others</strong>    Let team members use the same temporary email for testing purposes</li>
+          <li><strong>Cross-device workflow</strong>    Generate an email on desktop, scan the QR code, and use it on your mobile device</li>
+        </ul>
+
+        <p>The QR code appears automatically when you generate a new email address. Simply click it to view it in full screen for easy scanning.</p>
+      </div>
+
+      <div class="section" id="history">
+        <h2>History</h2>
+        <p>Pinbox keeps track of all the temporary email addresses you've generated during your current session. This makes it easy to switch between multiple addresses or review past ones.</p>
+
+        <h3>Using History:</h3>
+        <ul>
+          <li><strong>View past addresses</strong>    See all email addresses you've created</li>
+          <li><strong>Quick switch</strong>    Click any address in history to switch back to it instantly</li>
+          <li><strong>Track usage</strong>    See which services you've signed up for and when</li>
+        </ul>
+
+        <p>Your history is stored locally in your browser and is cleared when you log out. For privacy reasons, we don't store this information on our servers.</p>
+        <p>Disposable email addresses are stored locally in your browser in case you lose access after using one for something important, please contact support@aiplex.app for recovery assistance.</p>
       </div>
 
       <div class="section" id="auth">
         <h2>Authentication</h2>
-        <p>Sign up with a username and password. You can also use <strong>Google Sign-In</strong> for faster access. Your account is used to track your usage stats and manage your plan.</p>
-        <p>Sessions are secured with JWT tokens and expire automatically to protect your account.</p>
+        <p>Getting started with Pinbox is easy. You have two options to create an account:</p>
+
+        <h3>Sign up with Username & Password</h3>
+        <ul>
+          <li>Choose a unique username</li>
+          <li>Create a strong password</li>
+          <li>Verify your account</li>
+        </ul>
+
+        <h3>Sign in with Google</h3>
+        <ul>
+          <li>One-click sign in using your Google account</li>
+          <li>No need to remember another password</li>
+          <li>Your Google credentials are verified securely</li>
+        </ul>
+
+        <p>Your account helps you keep track of how many emails you've generated, manage your subscription plan, and access your usage history. For your safety, you'll be automatically logged out after a period of inactivity.</p>
+      </div>
+
+      <div class="section" id="plans">
+        <h2>Plans</h2>
+        <p>Pinbox offers different plans to match your needs:</p>
+
+        <h3>Free Plan</h3>
+        <ul>
+          <li>Generate temporary email addresses</li>
+          <li>Receive unlimited emails</li>
+          <li>Automatic verification code detection</li>
+          <li>Magic link resolution</li>
+          <li>Basic usage limits to ensure fair service</li>
+        </ul>
+
+        <h3>Pro Plan</h3>
+        <ul>
+          <li>Everything in Free, plus:</li>
+          <li>Higher daily limits for email generation</li>
+          <li>Priority inbox refresh</li>
+          <li>Extended email history</li>
+          <li>Priority customer support</li>
+        </ul>
+
+        <h3>Premium Plan</h3>
+        <ul>
+          <li>Everything in Pro, plus:</li>
+          <li>Unlimited email generation</li>
+          <li>Custom email domains (coming soon)</li>
+          <li>API access for developers (coming soon)</li>
+          <li>Premium support with direct access</li>
+        </ul>
+
+        <p>You can upgrade your plan anytime from your account settings. All plans include the same privacy protections and security features.</p>
       </div>
     </div>
   </div>
 
   <footer>
-    <div>© 2026 Pinbox. All rights reserved.</div>
+    <div>© 2025 Pinbox. All rights reserved.</div>
     <div>The innovations made for privacy.</div>
   </footer>
 <script defer src="/_vercel/insights/script.js"></script>

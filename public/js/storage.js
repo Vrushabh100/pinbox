@@ -1,51 +1,26 @@
 // ============================================
-// CoBox API Client - Replaces localStorage calls
-// All data now goes through the Express + MongoDB backend
+// Pinboxx API Client
+// Auth: HttpOnly cookie (pb_token) set by server — no localStorage token storage
 // ============================================
 
 const API_BASE = window.location.origin + '/api';
-const TOKEN_KEY = 'cobox_jwt_v2';
 
-// ─── Token helpers ────────────────────────────────────────────────────────────
-function getToken() {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return null;
-  // Check if token is expired by reading the exp claim
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
-      // Token expired — clear it automatically
-      localStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem('cobox_user_session');
-      return null;
-    }
-  } catch (e) {
-    // Malformed token — clear it
-    localStorage.removeItem(TOKEN_KEY);
-    return null;
-  }
-  return token;
-}
+// ─── Token helpers (kept as no-ops for backward compat with callers) ──────────
+function getToken() { return null; } // token is in HttpOnly cookie, not accessible from JS
 function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+  // If old code passes a token from server response, store it temporarily in memory
+  // (never in localStorage). The HttpOnly cookie is the real auth mechanism.
+  window.__pb_token_mem = token;
 }
 function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+  window.__pb_token_mem = null;
 }
 
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
 async function apiRequest(method, path, body = null, isAdmin = false) {
   const headers = { 'Content-Type': 'application/json' };
-
-  if (!isAdmin) {
-    const token = getToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } else {
-    const adminKey = sessionStorage.getItem('cobox_admin_key');
-    if (adminKey) headers['X-Admin-Key'] = adminKey;
-  }
-
-  const opts = { method, headers };
+  // Auth is handled by HttpOnly cookie automatically via credentials: 'include'
+  const opts = { method, headers, credentials: 'include' };
   if (body) opts.body = JSON.stringify(body);
 
   const res = await fetch(`${API_BASE}${path}`, opts);

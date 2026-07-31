@@ -1,9 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-P53LP40VXM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-P53LP40VXM');
+  </script>
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "xv57mnrir9");
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pinbox — Instant Private mailbox</title>
+  <title>Pinbox  Instant Private mailbox</title>
   <meta name="description" content="Generate temporary email addresses instantly. Receive OTPs, verification links, and emails without using your real email.">
   <!-- Google OAuth redirect URI is dynamically inferred from window.location.origin -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -792,16 +809,47 @@
 
   <!-- Landing Page -->
   <div id="pinboxx-landing" class="fixed inset-0 z-[195] flex flex-col font-sans" style="background: transparent;">
-    <header style="position:absolute;top:0;left:0;right:0;padding:2rem;display:flex;justify-content:space-between;align-items:center;z-index:10;">
+    <header style="position:absolute;top:0;left:0;right:0;padding:2rem;display:flex;justify-content:space-between;align-items:center;z-index:50;">
       <div style="font-size:1.25rem;font-weight:900;letter-spacing:0.1em;color:white;">PINBOX</div>
       <button id="btn-open-login" onclick="openPinboxxAuthGate()" class="btn-animated-border" style="padding:0.75rem 2rem;font-size:0.8rem;">LOGIN</button>
     </header>
     
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;position:relative;z-index:10;">
-      <h1 style="color:#ffffff; font-size:clamp(60px,12vw,140px);font-weight:900;line-height:0.9;text-transform:uppercase;letter-spacing:-3px;text-shadow:0 2px 20px rgba(0,0,0,0.8);">
-        PRIVATE<br>INBOX<span style="color:#10b981;">.</span>
+<style>
+.rolling-wrapper {
+  display: inline-flex;
+  height: 0.9em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.rolling-inner {
+  display: flex;
+  flex-direction: column;
+  animation: rollUp 6s ease-in-out infinite;
+}
+.rolling-item {
+  height: 0.9em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+@keyframes rollUp {
+  0%, 35%   { transform: translateY(0); }
+  45%, 85%  { transform: translateY(-0.9em); }
+  95%, 100% { transform: translateY(-1.8em); }
+}
+</style>
+      <p style="color:#ffffff;font-size:1.1rem;font-weight:400;text-transform:uppercase;letter-spacing:0.2em;margin:1.5rem 0 0.5rem;text-shadow:0 1px 8px rgba(0,0,0,0.9);">Welcome <br>Make Your</p>
+      <h1 style="color:#ffffff;font-size:clamp(20px,7vw,70px);font-weight:900;line-height:0.9;text-transform:uppercase;letter-spacing:-3px;margin:0;display:flex;justify-content:center;">
+        P<span class="rolling-wrapper">
+          <span class="rolling-inner">
+            <span class="rolling-item">rivate</span>
+            <span class="rolling-item">inbox</span>
+            <span class="rolling-item">rivate</span>
+          </span>
+        </span><span style="color:#10b981;">.</span>
       </h1>
-      <p style="color:#ffffff;font-size:1.1rem;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin:1.5rem 0 2.5rem;text-shadow:0 1px 8px rgba(0,0,0,0.9);">Instantly. Securely. Anonymously.</p>
+      <p style="color:#ffffff;font-size:1.1rem;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin:1.5rem 0 2.5rem;text-shadow:0 1px 8px rgba(0,0,0,0.9);">GENERATE A TEMPORARY EMAIL. USE IT ANYWHERE. GET YOUR CODE INSTANTLY.</p>
       <button onclick="openPinboxxAuthGate()" class="btn-animated-border" style="padding:1rem 3rem;font-size:0.9rem;font-weight:800;">GET STARTED</button>
     </div>
     
@@ -810,11 +858,12 @@
     
     <!-- Left: Copyright & Links -->
     <div class="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-      <span class="text-white">&copy; 2026 PINBOX</span>
+      <span class="text-white">&copy; 2025 PINBOX</span>
       <div class="flex gap-4">
         <a href="/docs.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Docs</a>
         <a href="/privacy.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Privacy</a>
         <a href="/terms.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Terms</a>
+        <a href="/contact.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Contact</a>
       </div>
     </div>
 
@@ -973,11 +1022,12 @@
     
     <!-- Left: Copyright & Links -->
     <div class="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-      <span class="text-white">&copy; 2026 PINBOX</span>
+      <span class="text-white">&copy; 2025 PINBOX</span>
       <div class="flex gap-4">
         <a href="/docs.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Docs</a>
         <a href="/privacy.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Privacy</a>
         <a href="/terms.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Terms</a>
+        <a href="/contact.html" class="hover:text-white transition-colors" style="color: inherit; text-decoration: none;">Contact</a>
       </div>
     </div>
 
@@ -1988,6 +2038,7 @@ document.addEventListener('DOMContentLoaded', updateProButtonState);
           <ul>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Unlimited Email Generation</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Unlimited OTP Extraction</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> reapeted use of AI services</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Premium Support</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Priority Server Access</li>
           </ul>
