@@ -96,7 +96,7 @@ function savePinboxxUserSession(user) {
 }
 
 function isPinboxxAuthenticated() {
-  return !!getToken(); // Check JWT token exists
+  return !!getPinboxxUserSession();
 }
 
 // ─── Register profile with backend ───────────────────────────────────────────
@@ -803,57 +803,42 @@ function requirePlanForFeature(minPlan, featureName) {
 }
 
 // ─── Razorpay Integration ────────────────────────────────────────────────
-async function initiateRazorpayCheckout() {
+async function initiateRazorpayCheckout(planOptions = {}) {
   if (!isPinboxxAuthenticated()) {
     openPinboxxAuthGate();
     return;
   }
 
-  const btn = document.querySelector('.btn-plan-pro');
-  const originalText = btn.textContent;
-  btn.textContent = 'Processing...';
-  btn.disabled = true;
+  const btn = document.querySelector(`.btn-plan-${planOptions.plan || 'pro'}`);
+  const originalText = btn ? btn.textContent : 'Upgrade';
+  if (btn) {
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+  }
 
   try {
-    const token = getToken();
-    const orderRes = await fetch('/api/payment/create-order', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!orderRes.ok) throw new Error('Failed to create order');
-    const order = await orderRes.json();
+    // Auth is handled by HttpOnly cookie via apiRequest
+    const order = await apiRequest('POST', '/payment/create-order');
 
     const options = {
       key: "REPLACE_WITH_YOUR_RAZORPAY_KEY_ID", // Front-end key placeholder
       amount: order.amount,
       currency: order.currency,
       name: "Pinboxx Pro",
-      description: "Upgrade to Pro Plan",
+      description: planOptions.description || "Upgrade to Pro Plan",
       order_id: order.id,
       handler: async function (response) {
         try {
-          const verifyRes = await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
+          const verifyData = await apiRequest('POST', '/payment/verify', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
           });
 
-          const verifyData = await verifyRes.json();
-          if (verifyRes.ok && verifyData.success) {
+          if (verifyData.success) {
             // Update local user session
             const user = await refreshCurrentUserFromServer();
-            savePinboxxUserSession(user);
+            if (user) savePinboxxUserSession(user);
             updateAvatarUI();
             closePricingModal();
             toast('Payment Successful! Upgraded to Pro.', 'success');
@@ -877,8 +862,10 @@ async function initiateRazorpayCheckout() {
     console.error(error);
     toast('Error starting payment process.', 'error');
   } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
+    if (btn) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
   }
 }
 window.initiateRazorpayCheckout = initiateRazorpayCheckout;
