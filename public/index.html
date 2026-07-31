@@ -1821,7 +1821,7 @@ lucide.createIcons();
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>
   <script>
-  function initPinboxx() {
+  async function initPinboxx() {
     const landing = document.getElementById('pinboxx-landing');
     const app = document.getElementById('pinboxx-app');
     const path = window.location.pathname;
@@ -1835,8 +1835,21 @@ lucide.createIcons();
       if (app) app.style.display = 'none';
       return;
     }
-    
-    if (isPinboxxAuthenticated()) {
+
+    // Auth check: ask the server if the HttpOnly cookie is valid
+    let isAuthed = false;
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      if (res.ok) {
+        const user = await res.json();
+        savePinboxxUserSession(user);
+        isAuthed = true;
+      }
+    } catch (e) {
+      isAuthed = false;
+    }
+
+    if (isAuthed) {
       if (path !== '/home') history.replaceState(null, '', '/home');
       if (landing) landing.style.display = 'none';
       if (app) app.style.display = 'block';
