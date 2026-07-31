@@ -474,7 +474,7 @@ function initPinboxxAuthGate() {
         const loginRes = await fetch('/api/auth/google-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: claims.email })
+          body: JSON.stringify({ idToken: response.credential })
         });
         if (loginRes.ok) {
           const result = await loginRes.json();
@@ -564,7 +564,7 @@ function initPinboxxAuthGate() {
         const loginRes = await fetch('/api/auth/google-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: claims.email })
+          body: JSON.stringify({ idToken })
         });
         if (loginRes.ok) {
           const result = await loginRes.json();
@@ -678,7 +678,8 @@ function initPinboxxAuthGate() {
       purpose: document.getElementById('auth-purpose').value.trim(),
       authProvider: selectedProvider || document.getElementById('auth-provider-input').value,
       googleSubject: googleProfile?.googleSubject || '',
-      referralCode: document.getElementById('auth-referral-code')?.value || undefined
+      referralCode: document.getElementById('auth-referral-code')?.value || undefined,
+      idToken: googleProfile?.credential || undefined
     };
 
     if (!profile.username || !profile.email || !profile.mobile || !profile.age || !profile.purpose || !profile.authProvider) {
