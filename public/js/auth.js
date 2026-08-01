@@ -96,7 +96,11 @@ function savePinboxxUserSession(user) {
 }
 
 function isPinboxxAuthenticated() {
-  return !!getToken(); // Check JWT token exists
+  // getToken() always returns null (auth uses HttpOnly cookie, not JS-accessible token).
+  // Instead, check if a valid user session exists in sessionStorage — this is populated
+  // on login and cleared on logout, making it the reliable client-side auth indicator.
+  const session = getPinboxxUserSession();
+  return !!(session && (session.userId || session.username));
 }
 
 // ─── Register profile with backend ───────────────────────────────────────────
@@ -122,7 +126,7 @@ async function persistUserProfile(profile) {
 // ─── Fetch current user status from backend ───────────────────────────────────
 
 async function refreshCurrentUserFromServer() {
-  if (!getToken()) return null;
+  if (!isPinboxxAuthenticated()) return null;
   try {
     const user = await apiRequest('GET', '/auth/me');
     savePinboxxUserSession(user);
@@ -739,16 +743,35 @@ function initPinboxxAuthGate() {
   if (isPinboxxAuthenticated()) {
     hideGate();
     updateAvatarUI();
+    
+    // Show a loading overlay while verifying session
+    const loader = document.createElement('div');
+    loader.id = 'auth-init-loader';
+    loader.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;';
+    loader.innerHTML = '<span class="spinner" style="margin-right:15px;"></span> Authenticating...';
+    document.body.appendChild(loader);
+
     // Validate token against server — clears stale tokens automatically
     refreshCurrentUserFromServer().then(user => {
+      document.getElementById('auth-init-loader')?.remove();
+      
       if (!user) {
         // Token was invalid/expired — already cleared by refreshCurrentUserFromServer
         updateAvatarUI();
-        // Redirect to landing page and show gate
-        window.location.href = '/landingpage';
+        // Redirect to landing page and show gate if not already there
+        if (window.location.pathname !== '/landingpage' && window.location.pathname !== '/') {
+          window.location.href = '/landingpage';
+        } else {
+          showGate();
+        }
       } else {
         updateAvatarUI(); // <--- Update UI now that sessionStorage is populated
         checkAndEnforceUserStatus();
+        
+        // If logged in and on landing page, redirect to app home
+        if (window.location.pathname === '/landingpage' || window.location.pathname === '/') {
+           window.location.href = '/home';
+        }
       }
     });
   } else {
@@ -802,83 +825,4 @@ function requirePlanForFeature(minPlan, featureName) {
   return false;
 }
 
-// ─── Razorpay Integration ────────────────────────────────────────────────
-async function initiateRazorpayCheckout() {
-  if (!isPinboxxAuthenticated()) {
-    openPinboxxAuthGate();
-    return;
-  }
-
-  const btn = document.querySelector('.btn-plan-pro');
-  const originalText = btn.textContent;
-  btn.textContent = 'Processing...';
-  btn.disabled = true;
-
-  try {
-    const token = getToken();
-    const orderRes = await fetch('/api/payment/create-order', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!orderRes.ok) throw new Error('Failed to create order');
-    const order = await orderRes.json();
-
-    const options = {
-      key: "REPLACE_WITH_YOUR_RAZORPAY_KEY_ID", // Front-end key placeholder
-      amount: order.amount,
-      currency: order.currency,
-      name: "Pinboxx Pro",
-      description: "Upgrade to Pro Plan",
-      order_id: order.id,
-      handler: async function (response) {
-        try {
-          const verifyRes = await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
-          });
-
-          const verifyData = await verifyRes.json();
-          if (verifyRes.ok && verifyData.success) {
-            // Update local user session
-            const user = await refreshCurrentUserFromServer();
-            savePinboxxUserSession(user);
-            updateAvatarUI();
-            closePricingModal();
-            toast('Payment Successful! Upgraded to Pro.', 'success');
-          } else {
-            toast('Payment verification failed.', 'error');
-          }
-        } catch (err) {
-          toast('Error verifying payment.', 'error');
-        }
-      },
-      theme: { color: "#10b981" }
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.on('payment.failed', function (response){
-      toast('Payment Failed!', 'error');
-    });
-    rzp.open();
-
-  } catch (error) {
-    console.error(error);
-    toast('Error starting payment process.', 'error');
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
-}
-window.initiateRazorpayCheckout = initiateRazorpayCheckout;
+// initiateRazorpayCheckout is defined in razorpay-checkout.js (loaded separately)

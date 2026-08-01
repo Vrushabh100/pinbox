@@ -28,6 +28,7 @@
 
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { overflow-x: hidden; }
 
     :root {
       /* Absolute Luxe Palette */
@@ -54,6 +55,7 @@
       min-height: 100vh;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
     /* ===== Shared Button Style (matches CoBox) ===== */
@@ -529,10 +531,108 @@
 
     /* ========== RESPONSIVE ========== */
     @media (max-width: 640px) {
+      /* --- App Container --- */
+      .app { padding: 0 16px 60px; }
+
+      /* --- Stats grid --- */
       .stats { grid-template-columns: repeat(2, 1fr); }
       .detail-meta { grid-template-columns: 1fr; }
-      .email-address { font-size: 16px; }
-      .otp-banner .otp-code { font-size: 32px; letter-spacing: 8px; }
+
+      /* --- Navigation (App) --- */
+      .nav {
+        padding: 40px 0 14px 0;
+        margin-bottom: 32px;
+        flex-wrap: nowrap;
+        gap: 8px;
+        align-items: flex-start;
+      }
+      .nav-logo {
+        font-size: 16px;
+        letter-spacing: 1px;
+        flex-shrink: 0;
+        margin-top: -2px; /* vertically align with the text links */
+      }
+      .nav-links {
+        gap: 12px 10px; /* row gap 12px to space out the two lines */
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        max-width: 200px; /* Forces 'Try Premium' to strictly wrap to the next line */
+      }
+      .nav-link {
+        font-size: 9px;
+        letter-spacing: 1px;
+      }
+      .btn-nav-premium {
+        font-size: 0.65rem;
+        padding: 6px 10px;
+        margin-left: 0;
+        letter-spacing: 0.5px;
+        border-left-width: 2px;
+      }
+      #avatar-wrapper { margin-left: 4px !important; }
+      #btn-avatar { width: 28px !important; height: 28px !important; font-size: 0.75rem !important; }
+
+      /* --- Hero Section (App) --- */
+      .hero {
+        margin-bottom: 48px;
+        padding-top: 20px;
+      }
+      .hero h1 {
+        font-size: clamp(36px, 10vw, 80px);
+        letter-spacing: -1px;
+        line-height: 1;
+      }
+      .hero p { font-size: 15px; }
+
+      /* --- Email address display --- */
+      .email-address { font-size: 16px; word-break: break-all; }
+      #emailAddress { font-size: 18px !important; text-align: center; }
+
+      /* --- OTP Banner --- */
+      .otp-banner .otp-code { font-size: 36px; letter-spacing: 6px; }
+      #otpCode { font-size: 36px !important; letter-spacing: 6px !important; }
+
+      /* --- Magic Link Banner --- */
+      .magic-link-banner { padding: 20px 16px; margin-bottom: 40px; }
+      .magic-link-banner .ml-url { font-size: 11px; }
+      .ml-resolved-code { font-size: 36px !important; letter-spacing: 8px !important; }
+      .ml-actions { gap: 8px; }
+
+      /* --- Inbox section --- */
+      #inboxSection .inbox-header { margin-bottom: 24px !important; }
+      #inboxSection h3 { font-size: 18px !important; }
+      .email-item { padding: 10px 12px; gap: 10px; }
+      .email-item .avatar { width: 34px; height: 34px; font-size: 14px; border-radius: 8px; }
+      .email-item .from { font-size: 13px; }
+      .email-item .subject { font-size: 12px; }
+      .email-item .time { font-size: 10px; }
+      .email-item:hover { transform: none; }
+
+      /* --- Email Detail View --- */
+      #detailSubject { font-size: 18px !important; margin-top: 12px !important; }
+      .detail-top-bar { margin-bottom: 24px !important; flex-wrap: wrap; }
+      .detail-otp-extract { padding: 20px 12px; }
+      #detailOTPCode { font-size: 32px !important; letter-spacing: 6px !important; }
+
+      /* --- Actions Bar --- */
+      #actionsBar .nav-links { flex-wrap: wrap; gap: 8px; justify-content: center; }
+      #actionsBar { margin-top: 40px !important; padding: 24px 0 !important; }
+
+      /* --- History Overlay --- */
+      .history-overlay { padding: 16px; }
+      .history-header h4 { font-size: 18px; }
+      .history-item { padding: 20px 0; }
+      .history-item .h-email { font-size: 11px; }
+
+      /* --- Pricing Modal --- */
+      .pricing-modal { padding: 16px; border-radius: 12px; }
+      .pricing-header h2 { font-size: 22px; }
+
+      /* --- Toast Container --- */
+      .toast-container { top: 12px; right: 12px; left: 12px; }
+      .toast { padding: 12px 16px; font-size: 10px; letter-spacing: 1px; }
+
+      /* --- Logo size fallback --- */
       .logo { font-size: 30px; }
     }
 
@@ -566,7 +666,7 @@
       display: flex; flex-direction: column;
     }
     .history-item {
-      padding: 32px 0; border-bottom: 1px solid var(--border);
+      padding: 32px 16px 32px 0; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
     }
     .history-item .h-email { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
@@ -837,6 +937,41 @@
   0%, 35%   { transform: translateY(0); }
   45%, 85%  { transform: translateY(-0.9em); }
   95%, 100% { transform: translateY(-1.8em); }
+}
+
+/* Landing page mobile overrides */
+#pinboxx-landing header { padding: 1.25rem 1.25rem !important; }
+#pinboxx-landing .landing-hero-container { padding: 1.25rem !important; }
+#pinboxx-landing .landing-hero-h1 { letter-spacing: -1px !important; }
+#pinboxx-landing .landing-hero-sub { font-size: 0.7rem !important; letter-spacing: 0.1em !important; margin: 1rem 0 1.5rem !important; }
+#pinboxx-landing footer { padding-left: 1rem !important; padding-right: 1rem !important; margin-top: 0 !important; }
+
+@media (max-width: 640px) {
+  /* Landing header */
+  #pinboxx-landing header { padding: 1rem 1.25rem !important; }
+
+  /* Landing hero container */
+  #pinboxx-landing > div { padding: 1rem 1.25rem !important; }
+
+  /* Landing h1 letter-spacing fix */
+  #pinboxx-landing h1 { letter-spacing: -1px !important; font-size: clamp(28px, 10vw, 60px) !important; }
+
+  /* Landing subtitle p */
+  #pinboxx-landing > div > p:last-of-type {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.08em !important;
+    margin: 0.75rem 0 1.5rem !important;
+  }
+
+  /* GET STARTED button */
+  #pinboxx-landing > div > button { padding: 0.85rem 2rem !important; font-size: 0.8rem !important; }
+
+  /* Landing footer */
+  #pinboxx-landing footer {
+    margin-top: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 }
 </style>
       <p style="color:#ffffff;font-size:1.1rem;font-weight:400;text-transform:uppercase;letter-spacing:0.2em;margin:1.5rem 0 0.5rem;text-shadow:0 1px 8px rgba(0,0,0,0.9);">Welcome <br>Make Your</p>
@@ -1135,15 +1270,15 @@ async function trackAction(action) {
     }
   }
 
-  const token = typeof getToken === "function" ? getToken() : "";
-  if (!token) return true; // not logged in, let it pass (auth middleware handles it)
+  // Check if user is logged in using session (getToken() returns null since we use HttpOnly cookies)
+  const loggedIn = typeof isPinboxxAuthenticated === 'function' ? isPinboxxAuthenticated() : false;
+  if (!loggedIn) return true; // not logged in — auth middleware handles it downstream
+
   try {
     const res = await fetch(`${API}/track`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',   // sends pb_token HttpOnly cookie automatically
       body: JSON.stringify({ action })
     });
     const data = await res.json();
@@ -1164,6 +1299,7 @@ async function trackAction(action) {
     return true; // fail open — don't block the user on network errors
   }
 }
+
 
 // ============================
 // GENERATE EMAIL
@@ -1472,8 +1608,8 @@ async function resolveMagicLink() {
     } else {
       // No OTP found on the page — show page text for debugging
       statusEl.textContent = data.pageText
-        ? `No code found. The page may use JavaScript rendering. Try opening the link manually.`
-        : `No code found. The page may use JavaScript rendering. Try opening the link manually.`;
+        ? `No code found, Try opening the link manually`
+        : `No code found, Try opening the link manually`;
       statusEl.className = 'ml-status error';
       btn.classList.add('hidden'); // Hide resolve button
       document.getElementById('mlOpenBtn').classList.remove('hidden'); // Show Open in Browser button
@@ -1836,18 +1972,9 @@ lucide.createIcons();
       return;
     }
 
-    // Auth check: ask the server if the HttpOnly cookie is valid
-    let isAuthed = false;
-    try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
-      if (res.ok) {
-        const user = await res.json();
-        savePinboxxUserSession(user);
-        isAuthed = true;
-      }
-    } catch (e) {
-      isAuthed = false;
-    }
+    // auth.js already handles verifying the HttpOnly cookie against the server
+    // and maintaining the sessionStorage state, so we just check the session synchronously here.
+    const isAuthed = typeof isPinboxxAuthenticated === 'function' ? isPinboxxAuthenticated() : false;
 
     if (isAuthed) {
       if (path !== '/home') history.replaceState(null, '', '/home');

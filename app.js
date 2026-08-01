@@ -62,6 +62,8 @@ app.get('/api/config', (req, res) => {
   res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID });
 });
 
+// (Sentry debug route removed for production)
+
 // ─── Tempmail Rate Limiter (keep existing) ───────────────────────────────────
 const tempmailLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

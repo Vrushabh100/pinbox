@@ -5,6 +5,7 @@
 // ⚠️  SECURITY:
 //   • KEY_ID arrives from the server's create-order response — never hardcoded here.
 //   • KEY_SECRET NEVER reaches the browser — all signature work is server-side only.
+//   • Auth uses HttpOnly cookie (pb_token) sent automatically via credentials:'include'.
 //   • checkout.js is loaded lazily so it doesn't slow down page load.
 // ============================================
 
@@ -29,12 +30,17 @@ function loadRazorpayScript() {
 }
 
 /**
- * Get the JWT token using storage.js's getToken() which handles expiry checks.
- * Falls back to reading localStorage directly with the same key.
+ * Check if the user is logged in.
+ * Delegates to isPinboxxAuthenticated() (defined in auth.js) which reads sessionStorage.
+ * getToken() always returns null in cookie-based auth, so we never use it here.
  */
-function _getAuthToken() {
-  if (typeof getToken === 'function') return getToken();
-  return localStorage.getItem('cobox_jwt_v2') || null;
+function _isUserLoggedIn() {
+  if (typeof isPinboxxAuthenticated === 'function') return isPinboxxAuthenticated();
+  // Direct sessionStorage fallback if auth.js hasn't loaded yet
+  try {
+    const session = JSON.parse(sessionStorage.getItem('pinboxx_user_session') || 'null');
+    return !!(session && (session.userId || session.username));
+  } catch (e) { return false; }
 }
 
 /**
@@ -52,10 +58,10 @@ async function initiateRazorpayCheckout({ amountINR, plan, description, onSucces
   amountINR = amountINR || 299;
   plan      = plan      || 'pro';
 
-  const token = _getAuthToken();
-  if (!token) {
-    if (onFailure) onFailure('You must be logged in to make a payment.');
-    else if (typeof showToast === 'function') showToast('Please log in first to upgrade.', 'warning');
+  // Auth check — rely on sessionStorage session (HttpOnly cookie is sent automatically)
+  if (!_isUserLoggedIn()) {
+    if (typeof showToast === 'function') showToast('Please log in first to upgrade.', 'warning');
+    else if (typeof openPinboxxAuthGate === 'function') openPinboxxAuthGate();
     return;
   }
 
@@ -64,12 +70,11 @@ async function initiateRazorpayCheckout({ amountINR, plan, description, onSucces
     await loadRazorpayScript();
 
     // ── STEP 2: Create order server-side (KEY_SECRET never used here) ──────────
+    // Auth is carried by the HttpOnly pb_token cookie — no Authorization header needed.
     const orderRes = await fetch('/api/payment/create-order', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',          // sends pb_token HttpOnly cookie automatically
       body: JSON.stringify({ amount: amountINR, currency: 'INR', plan })
     });
 
@@ -107,10 +112,8 @@ async function initiateRazorpayCheckout({ amountINR, plan, description, onSucces
       // ── STEP 4: Verify signature server-side ───────────────────────────────
       const verifyRes = await fetch('/api/payment/verify', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',        // sends pb_token HttpOnly cookie automatically
         body: JSON.stringify({
           razorpay_order_id:   paymentResponse.razorpay_order_id,
           razorpay_payment_id: paymentResponse.razorpay_payment_id,
@@ -132,8 +135,13 @@ async function initiateRazorpayCheckout({ amountINR, plan, description, onSucces
         if (typeof showToast === 'function') {
           showToast(`🎉 Payment successful! You are now on the ${result.plan} plan.`, 'success');
         }
+        // Refresh session so plan badge updates immediately
+        if (typeof refreshCurrentUserFromServer === 'function') {
+          await refreshCurrentUserFromServer();
+        }
         // Update button state immediately
         if (typeof updateProButtonState === 'function') updateProButtonState();
+        if (typeof updateAvatarUI === 'function') updateAvatarUI();
         setTimeout(() => window.location.reload(), 1500);
       }
     })

@@ -26,6 +26,7 @@
   <style>
     :root { --bg: #000; --fg: #fff; --muted: #888; --border: #1a1a1a; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overflow-x: hidden; }
     body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; line-height: 1.7; }
     nav { display: flex; align-items: center; justify-content: space-between; padding: 24px 48px; border-bottom: 1px solid var(--border); }
     nav .logo { font-size: 18px; font-weight: 900; letter-spacing: -1px; text-decoration: none; color: #fff; }
@@ -43,6 +44,14 @@
     .section ul li { margin-bottom: 10px; }
     footer { border-top: 1px solid var(--border); padding: 40px 48px; display: flex; justify-content: space-between; }
     footer div { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .hero { padding: 56px 20px 36px; }
+      .hero h1 { letter-spacing: -1px; }
+      .content { padding: 36px 20px 72px; }
+      .section ul { padding-left: 16px; }
+      footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 20px; }
+    }
   </style>
 </head>
 <body>
