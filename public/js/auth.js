@@ -68,7 +68,8 @@ function startGoogleRedirect() {
 
 function getPinboxxUserSession() {
   try {
-    const raw = sessionStorage.getItem(PINBOXX_AUTH_SESSION_KEY);
+    // localStorage persists across browser restarts (unlike sessionStorage)
+    const raw = localStorage.getItem(PINBOXX_AUTH_SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -91,7 +92,8 @@ function savePinboxxUserSession(user) {
     suspendedUntil: user.suspendedUntil || null,
     startTime: new Date().toISOString()
   };
-  sessionStorage.setItem(PINBOXX_AUTH_SESSION_KEY, JSON.stringify(session));
+  // Use localStorage so session survives browser restarts
+  localStorage.setItem(PINBOXX_AUTH_SESSION_KEY, JSON.stringify(session));
   return session;
 }
 
@@ -133,11 +135,53 @@ async function refreshCurrentUserFromServer() {
     return user;
   } catch (err) {
     if (err.status === 401) {
-      // Token expired - force logout
+      // Token expired or invalid — clear all local session state
       clearToken();
       sessionStorage.removeItem(PINBOXX_AUTH_SESSION_KEY);
+      localStorage.removeItem(PINBOXX_AUTH_SESSION_KEY);
     }
     return null;
+  }
+}
+
+// ─── Restore session from HttpOnly cookie on page load ────────────────────────
+// Called when no local session exists but a valid server-side cookie might.
+// The browser automatically sends pb_token cookie — if valid, we restore the session.
+async function _tryRestoreSessionFromCookie() {
+  // Show a brief loading overlay so the app doesn't flash as logged-out
+  const loader = document.createElement('div');
+  loader.id = 'auth-init-loader';
+  loader.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;';
+  loader.innerHTML = '<span class="spinner" style="margin-right:15px;"></span> Authenticating...';
+  document.body.appendChild(loader);
+
+  try {
+    // credentials: 'include' sends the pb_token HttpOnly cookie automatically
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (res.ok) {
+      const user = await res.json();
+      savePinboxxUserSession(user);
+      document.getElementById('auth-init-loader')?.remove();
+      updateAvatarUI();
+      checkAndEnforceUserStatus();
+      // If on landing/root, redirect into the app
+      if (window.location.pathname === '/landingpage' || window.location.pathname === '/') {
+        window.location.href = '/home';
+      }
+      return;
+    }
+  } catch (e) {
+    // Network error — treat as not logged in
+  }
+
+  // No valid cookie — user is not authenticated
+  document.getElementById('auth-init-loader')?.remove();
+  updateAvatarUI();
+  // Only show the login gate on protected pages (not landing/root)
+  if (window.location.pathname !== '/landingpage' && window.location.pathname !== '/') {
+    if (typeof window.openPinboxxAuthGate === 'function') {
+      window.openPinboxxAuthGate();
+    }
   }
 }
 
@@ -714,9 +758,15 @@ function initPinboxxAuthGate() {
   loginBtn?.addEventListener('click', showGate);
   closeBtn?.addEventListener('click', hideGate);
 
-  logoutBtn?.addEventListener('click', () => {
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      // Tell server to (optionally) invalidate session tracking
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) { /* ignore */ }
     clearToken();
+    // Clear both storages so session is fully gone
     sessionStorage.removeItem(PINBOXX_AUTH_SESSION_KEY);
+    localStorage.removeItem(PINBOXX_AUTH_SESSION_KEY);
     updateAvatarUI();
     window.location.href = '/logout';
   });
@@ -741,9 +791,10 @@ function initPinboxxAuthGate() {
   }
 
   if (isPinboxxAuthenticated()) {
+    // Local session cache exists — show UI immediately, then validate with server
     hideGate();
     updateAvatarUI();
-    
+
     // Show a loading overlay while verifying session
     const loader = document.createElement('div');
     loader.id = 'auth-init-loader';
@@ -754,7 +805,7 @@ function initPinboxxAuthGate() {
     // Validate token against server — clears stale tokens automatically
     refreshCurrentUserFromServer().then(user => {
       document.getElementById('auth-init-loader')?.remove();
-      
+
       if (!user) {
         // Token was invalid/expired — already cleared by refreshCurrentUserFromServer
         updateAvatarUI();
@@ -765,18 +816,20 @@ function initPinboxxAuthGate() {
           showGate();
         }
       } else {
-        updateAvatarUI(); // <--- Update UI now that sessionStorage is populated
+        updateAvatarUI(); // Update UI now that localStorage is populated
         checkAndEnforceUserStatus();
-        
+
         // If logged in and on landing page, redirect to app home
         if (window.location.pathname === '/landingpage' || window.location.pathname === '/') {
-           window.location.href = '/home';
+          window.location.href = '/home';
         }
       }
     });
   } else {
+    // No local session cache — but the user may have a valid HttpOnly cookie
+    // (e.g. returning after browser restart). Always check the server.
     hideGate();
-    updateAvatarUI();
+    _tryRestoreSessionFromCookie();
   }
 }
 

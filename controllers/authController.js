@@ -10,15 +10,18 @@ const { encrypt } = require('../utils/encryption');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ─── Cookie Options ──────────────────────────────────────────────────────────
+// Session duration in days — configurable via AUTH_TOKEN_DAYS env (default 30)
+const AUTH_TOKEN_DAYS = parseInt(process.env.AUTH_TOKEN_DAYS, 10) || 30;
+
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: AUTH_TOKEN_DAYS * 24 * 60 * 60 * 1000, // persistent cookie (survives browser restart)
 };
 
 function generateToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: `${AUTH_TOKEN_DAYS}d` });
 }
 
 function setAuthCookie(res, token) {
