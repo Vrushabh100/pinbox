@@ -90,7 +90,8 @@
       <a href="#otp">OTP Extraction</a>
       <a href="#magic">Magic Links</a>
       <a href="#qr">QR Code</a>
-      <a href="#history">History</a>
+      <a href="#history">Email History</a>
+      <a href="#notes">Notes</a>
       <h5>Account</h5>
       <a href="#auth">Authentication</a>
       <a href="#plans">Plans</a>
@@ -163,39 +164,79 @@
       </div>
 
       <div class="section" id="history">
-        <h2>History</h2>
-        <p>Pinbox keeps track of all the temporary email addresses you've generated during your current session. This makes it easy to switch between multiple addresses or review past ones.</p>
+        <h2>Email History</h2>
+        <p>Pinbox automatically saves every temporary email address you generate into a local history panel. You can access it anytime by opening the <strong>History</strong> sidebar on the app screen.</p>
 
-        <h3>Using History:</h3>
+        <h3>Loading a past email</h3>
+        <p>Each history entry has a <strong>Use</strong> button <em>(↺ rotate icon)</em>. Clicking it instantly restores that address as your active inbox — the app starts polling for new messages to that address again, exactly as if you had just generated it. This is useful when:</p>
         <ul>
-          <li><strong>View past addresses</strong>    See all email addresses you've created</li>
-          <li><strong>Quick switch</strong>    Click any address in history to switch back to it instantly</li>
-          <li><strong>Track usage</strong>    See which services you've signed up for and when</li>
+          <li>You closed the tab and came back later but still need to receive mail to the same address</li>
+          <li>You generated several addresses for different services and want to switch between them</li>
+          <li>A verification email was delayed and you need to re-activate the address to receive it</li>
         </ul>
 
-        <p>Your history is stored locally in your browser and is cleared when you log out. For privacy reasons, we don't store this information on our servers.</p>
-        <p>Disposable email addresses are stored locally in your browser in case you lose access after using one for something important, please contact support@aiplex.app for recovery assistance.</p>
+        <h3>Things to know</h3>
+        <ul>
+          <li>History is stored locally in your browser — it persists across page refreshes but is tied to your device</li>
+          <li>Each entry shows the address, the date it was generated, and any OTP code that was detected when it was active</li>
+          <li>Switching to a history email does <strong>not</strong> count against your daily email generation limit</li>
+        </ul>
+      </div>
+
+      <div class="section" id="notes">
+        <h2>Notes</h2>
+        <p>Every address in your history can have a short personal note attached to it — a label you write yourself to remember what you used that address for.</p>
+
+        <h3>How to add or edit a note</h3>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Open History</h3>
+            <p>Click the History panel on the app screen to see all your saved addresses.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Click "Note" on any entry</h3>
+            <p>Each history item has a <strong>Note</strong> button <em>(sticky-note icon)</em>. Clicking it reveals a small inline text input below the address.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Type your note and save</h3>
+            <p>Write anything up to 200 characters — e.g. <em>"Used for Claude signup"</em> or <em>"Netflix trial — don't delete"</em>. Press <strong>Enter</strong> or click <strong>Save</strong>. The note appears directly under the address in the history list.</p>
+          </div>
+        </div>
+
+        <h3>Tips</h3>
+        <ul>
+          <li>Notes survive page refreshes — they are saved alongside the address in your browser's local storage</li>
+          <li>You can edit a note at any time by clicking <strong>Note</strong> again on the same entry</li>
+          <li>Notes are only visible to you on your device — they are never sent to our servers</li>
+          <li>Use notes to track which service each address belongs to, so you know which one to restore with the <strong>Use</strong> button later</li>
+        </ul>
       </div>
 
       <div class="section" id="auth">
         <h2>Authentication</h2>
-        <p>Getting started with Pinbox is easy. You have two options to create an account:</p>
-
-        <h3>Sign up with Username & Password</h3>
-        <ul>
-          <li>Choose a unique username</li>
-          <li>Create a strong password</li>
-          <li>Verify your account</li>
-        </ul>
+        <p>Getting started with Pinbox requires a verified account. You can sign in using two methods:</p>
 
         <h3>Sign in with Google</h3>
         <ul>
-          <li>One-click sign in using your Google account</li>
-          <li>No need to remember another password</li>
-          <li>Your Google credentials are verified securely</li>
+          <li>One-click sign in using your existing Google account</li>
+          <li>No password to remember — Google verifies your identity securely</li>
+          <li>Your Google credentials are verified server-side and never stored</li>
         </ul>
 
-        <p>Your account helps you keep track of how many emails you've generated, manage your subscription plan, and access your usage history. For your safety, you'll be automatically logged out after a period of inactivity.</p>
+        <h3>Sign in with Referral Code</h3>
+        <ul>
+          <li>If you have a team referral code, enter it to create an account instantly</li>
+          <li>Referral codes may include an upgraded plan tier depending on who issued them</li>
+        </ul>
+
+        <p>Once logged in, your session stays active for <strong>30 days</strong> — you won't need to sign in again every time you visit. Your session is stored in a secure HttpOnly cookie and is automatically restored when you return to the app. You will only be asked to log in again after the session expires or if you explicitly click <strong>Logout</strong>.</p>
       </div>
 
       <div class="section" id="plans">
@@ -235,7 +276,7 @@
   </div>
 
   <footer>
-    <div>© 2025 Pinbox. All rights reserved.</div>
+    <div>&copy; 2026 Pinbox. All rights reserved.</div>
     <div>The innovations made for privacy.</div>
   </footer>
 <script defer src="/_vercel/insights/script.js"></script>

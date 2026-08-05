@@ -23,7 +23,7 @@ async function authMiddleware(req, res, next) {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });

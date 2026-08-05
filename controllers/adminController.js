@@ -1,5 +1,6 @@
 
 const User = require('../models/User');
+const { decrypt } = require('../utils/encryption');
 
 module.exports.verify = (req, res) => {
   res.json({ success: true, message: 'Admin authenticated' });
@@ -28,16 +29,29 @@ module.exports.getUsers = async (req, res) => {
     const query = {};
 
     if (search) {
+      // ── SECURITY: escape regex special chars to prevent ReDoS ─────────────
+      // Same fix applied in authController.js:135 — raw client input must never
+      // be passed directly to $regex. An attacker with admin creds could craft
+      // a pathological pattern that causes catastrophic backtracking in MongoDB.
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { username: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { mobile: { $regex: search, $options: 'i' } }
+        { username: { $regex: escaped, $options: 'i' } },
+        { email:    { $regex: escaped, $options: 'i' } },
+        { mobile:   { $regex: escaped, $options: 'i' } }
       ];
     }
 
     if (status) query.status = status;
 
-    const users = await User.find(query).sort({ createdAt: -1 }).lean();
+    let users = await User.find(query).sort({ createdAt: -1 }).lean();
+    
+    // Decrypt encrypted fields before sending to admin panel
+    users = users.map(u => {
+      if (u.mobile) u.mobile = decrypt(u.mobile);
+      if (u.purpose) u.purpose = decrypt(u.purpose);
+      return u;
+    });
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -48,6 +62,11 @@ module.exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Decrypt encrypted fields before sending
+    if (user.mobile) user.mobile = decrypt(user.mobile);
+    if (user.purpose) user.purpose = decrypt(user.purpose);
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });

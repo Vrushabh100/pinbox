@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const connectDB = require('./db');
-const { authLimiter, paymentLimiter } = require('./middleware/rateLimiter');
+const { authLimiter, paymentLimiter, adminLimiter } = require('./middleware/rateLimiter');
 
 const authRoutes     = require('./routes/auth');
 const adminRoutes    = require('./routes/admin');
@@ -72,8 +72,8 @@ const tempmailLimiter = rateLimit({
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/auth',     authLimiter,     authRoutes);
-app.use('/api/admin',                     adminRoutes);
+app.use('/api/auth',     authLimiter,  authRoutes);
+app.use('/api/admin',   adminLimiter, adminRoutes);
 app.use('/api/tempmail', tempmailLimiter, tempmailRouter);
 app.use('/api/payment',  paymentLimiter,  paymentRouter);
 app.use('/api/settings',                  settingsRoutes);

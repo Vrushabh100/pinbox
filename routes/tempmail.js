@@ -3,8 +3,10 @@ const router = express.Router();
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 const cheerio = require('cheerio');
+const dns = require('dns').promises;
 
 const authMiddleware = require('../middleware/auth');
+const TempAddress = require('../models/TempAddress');
 router.use(authMiddleware);
 
 router.use((req, res, next) => {
@@ -215,6 +217,58 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 
+// ─── SSRF Protection ────────────────────────────────────────────────────────
+// Validates a URL before allowing the server-side headless browser to navigate
+// to it. Blocks private/loopback/link-local IP ranges and non-https schemes.
+async function isSafeUrl(rawUrl) {
+    let parsed;
+    try { parsed = new URL(rawUrl); } catch { return false; }
+
+    // Only allow https — no http, file, ftp, data, etc.
+    if (parsed.protocol !== 'https:') return false;
+
+    // Block common internal hostnames
+    const hostname = parsed.hostname.toLowerCase();
+    const blockedHostnames = ['localhost', 'metadata.google.internal'];
+    if (blockedHostnames.includes(hostname)) return false;
+
+    // If the hostname is already a raw IP, check it directly
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6Regex = /^\[.*\]$/;
+    if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
+        return !isPrivateIp(hostname.replace(/[\[\]]/g, ''));
+    }
+
+    // Resolve hostname to IP(s) and check each one
+    try {
+        const addresses = await dns.resolve4(hostname).catch(() => []);
+        const addresses6 = await dns.resolve6(hostname).catch(() => []);
+        const all = [...addresses, ...addresses6];
+        if (all.length === 0) return false; // unresolvable
+        for (const ip of all) {
+            if (isPrivateIp(ip)) return false;
+        }
+    } catch { return false; }
+
+    return true;
+}
+
+function isPrivateIp(ip) {
+    // IPv4 private/loopback/link-local ranges
+    const privateRanges = [
+        /^127\./,                        // loopback
+        /^10\./,                          // RFC 1918
+        /^172\.(1[6-9]|2\d|3[0-1])\./,  // RFC 1918
+        /^192\.168\./,                    // RFC 1918
+        /^169\.254\./,                    // link-local (AWS/GCP metadata)
+        /^0\./,                           // this-network
+        /^::1$/,                          // IPv6 loopback
+        /^fc00:/i,                        // IPv6 unique-local
+        /^fd[0-9a-f]{2}:/i,              // IPv6 unique-local
+    ];
+    return privateRanges.some(r => r.test(ip));
+}
+
 async function resolveOTPFromLink(url) {
     console.log(`[TempMail] Resolving magic link via Puppeteer: ${url}`);
     let browser = null;
@@ -264,9 +318,17 @@ function extractOTPFromText(visibleText) {
     ];
     for (const pattern of patterns) {
         const match = visibleText.match(pattern);
-        if (match && match[1]) return match[1];
+        if (match && match[1] && !isYearNumber(match[1])) return match[1];
     }
     return null;
+}
+
+// Returns true for 4-digit numbers that look like calendar years (2020-2035).
+// These commonly appear in email footers/headers and are mistaken for OTPs,
+// especially when the email also contains a magic link.
+function isYearNumber(candidate) {
+    const n = parseInt(candidate, 10);
+    return candidate.length === 4 && n >= 2020 && n <= 2035;
 }
 
 function extractOTPFromUrl(url) {
@@ -286,6 +348,18 @@ router.get("/messages", async (req, res, next) => {
         if (!email) {
             return res.status(400).json({ error: "Missing email parameter" });
         }
+
+        // ── SECURITY: IDOR check ─────────────────────────────────────────────
+        // Verify that the requesting user owns this address.
+        // Without this, any authenticated user can read any other user's inbox.
+        const ownership = await TempAddress.findOne({
+            address: email.toLowerCase(),
+            userId: req.user._id,
+        });
+        if (!ownership) {
+            return res.status(403).json({ error: 'Access denied: this address does not belong to your account.' });
+        }
+        // ─────────────────────────────────────────────────────────
 
         if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
             return res.status(500).json({ error: "Server missing Gmail credentials. Add GMAIL_EMAIL and GMAIL_APP_PASSWORD in .env" });
@@ -435,12 +509,15 @@ router.post("/resolve-link", async (req, res, next) => {
             return res.status(400).json({ error: "Missing 'url' in request body" });
         }
 
-        // Basic URL validation
-        try {
-            new URL(url);
-        } catch (e) {
-            return res.status(400).json({ error: "Invalid URL provided" });
+        // ── SECURITY: SSRF protection ───────────────────────────────────────
+        // Validate scheme and resolve hostname to block private/internal IPs.
+        // Prevents the server-side browser from hitting metadata endpoints,
+        // internal admin panels, or cloud instance identity services.
+        const safe = await isSafeUrl(url);
+        if (!safe) {
+            return res.status(400).json({ error: 'URL is not allowed. Only public HTTPS URLs are permitted.' });
         }
+        // ─────────────────────────────────────────────────────────
 
         const result = await resolveOTPFromLink(url);
         res.json(result);
@@ -508,7 +585,7 @@ router.get("/limits", async (req, res, next) => {
 router.post("/track", async (req, res, next) => {
     try {
         if (!req.user || !req.user._id) return res.status(401).json({ error: "Unauthorized" });
-        const { action } = req.body;
+        const { action, email } = req.body;
         
         const User = require('../models/User'); 
         const userDoc = await User.findById(req.user._id);
@@ -531,6 +608,18 @@ router.post("/track", async (req, res, next) => {
         else return res.status(400).json({ error: "Invalid action" });
 
         await User.findByIdAndUpdate(req.user._id, { $inc: updateField });
+
+        // ── SECURITY: save address ownership record ───────────────────────────
+        // When a new temp-mail address is generated, bind it to this user so
+        // GET /messages can verify ownership and prevent IDOR attacks.
+        if (action === 'emailsGenerated' && email) {
+            await TempAddress.findOneAndUpdate(
+                { address: email.toLowerCase(), userId: req.user._id },
+                { address: email.toLowerCase(), userId: req.user._id, createdAt: new Date() },
+                { upsert: true, setDefaultsOnInsert: true }
+            );
+        }
+
         res.json({ success: true });
     } catch (err) {
         next(err);

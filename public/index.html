@@ -1264,7 +1264,7 @@ let state = {
 const API = '/api/tempmail';
 
 // TRACKING HELPER — returns true if allowed, false if limit hit (and opens pricing modal) or account restricted
-async function trackAction(action) {
+async function trackAction(action, email = null) {
   if (typeof getPinboxxUserSession === 'function') {
     const session = getPinboxxUserSession();
     if (session) {
@@ -1296,7 +1296,7 @@ async function trackAction(action) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',   // sends pb_token HttpOnly cookie automatically
-      body: JSON.stringify({ action })
+      body: JSON.stringify(email ? { action, email } : { action })
     });
     const data = await res.json();
     if (res.status === 403) {
@@ -1334,16 +1334,16 @@ async function generateEmail() {
   clearInterval(state.timerInterval);
 
   try {
-    // CHECK LIMIT FIRST — if blocked, trackAction opens the pricing modal
-    const allowed = await trackAction('emailsGenerated');
+    const domain = "aiplex.app";
+    const username = generateRandomString(12);
+    const address = `${username}@${domain}`;
+
+    // CHECK LIMIT FIRST AND RECORD OWNERSHIP
+    const allowed = await trackAction('emailsGenerated', address);
     if (!allowed) {
       // Limit hit — pricing modal is already open, restore button state
       return;
     }
-
-    const domain = "aiplex.app";
-    const username = generateRandomString(12);
-    const address = `${username}@${domain}`;
 
     state.provider = 'aiplex.app';
     state.email = address;
@@ -1401,7 +1401,22 @@ async function fetchMessages() {
           const detail = msg; // Full body is already fetched!
           if (detail) {
             const extractionBody = detail.textBody || detail.text || detail.html || '';
-            const otp = extractOTP(extractionBody);
+            const rawHtml = detail.html || '';
+
+            // Always extract magic links — run in parallel with OTP detection
+            const magicLinks = extractMagicLinksFromEmail(rawHtml, extractionBody);
+            const hasMagicLinks = magicLinks.length > 0;
+
+            let otp = extractOTP(extractionBody);
+
+            // Extra layer: if the extracted "OTP" is just a year number (2026 etc.)
+            // AND the email also has a magic link, then the year is a false positive.
+            // Discard it and let the magic link path handle verification instead.
+            if (otp && isOTPYearNumber(otp) && hasMagicLinks) {
+              console.log(`[OTP] Discarding year number "${otp}" — magic link present, using that instead.`);
+              otp = null;
+            }
+
             if (otp && otp !== state.otpFound) {
               state.otpFound = otp;
               state.otpCount++;
@@ -1410,14 +1425,11 @@ async function fetchMessages() {
               toast(`Security code: ${otp}`, 'success');
             }
 
-            // If no plain OTP found, check for magic links (like Claude AI)
-            if (!otp && !state.magicLinkResolved) {
-              const magicLinks = extractMagicLinksFromEmail(detail.html || '', detail.textBody || detail.text || '');
-              if (magicLinks.length > 0 && state.magicLinks.length === 0) {
-                state.magicLinks = magicLinks;
-                showMagicLinkBanner(magicLinks[0]);
-                toast('Magic link detected — click Resolve to extract code', 'success');
-              }
+            // Show magic link banner if: no valid OTP found OR OTP was discarded as a year
+            if (!otp && hasMagicLinks && !state.magicLinkResolved && state.magicLinks.length === 0) {
+              state.magicLinks = magicLinks;
+              showMagicLinkBanner(magicLinks[0]);
+              toast('Magic link detected — click Resolve to extract code', 'success');
             }
           }
           state.seenIds.add(msg.id);
@@ -1463,12 +1475,20 @@ function extractOTP(text) {
 
   for (const pattern of patterns) {
     const match = clean.match(pattern);
-    if (match && match[1]) {
+    if (match && match[1] && !isOTPYearNumber(match[1])) {
       return match[1];
     }
   }
 
   return null;
+}
+
+// Returns true for 4-digit numbers in the current year range (2020-2035).
+// Emails frequently contain the year in footers/copyright lines.
+// These are mistaken for OTP codes, especially when a magic link is also present.
+function isOTPYearNumber(candidate) {
+  const n = parseInt(candidate, 10);
+  return candidate.length === 4 && n >= 2020 && n <= 2035;
 }
 
 // ============================

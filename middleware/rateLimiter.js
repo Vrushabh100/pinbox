@@ -33,4 +33,13 @@ const apiLimiter = isDev ? passThrough : rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authLimiter, paymentLimiter, apiLimiter };
+// Admin: 5 requests per 15 minutes (brute-force protection for bcrypt key check)
+const adminLimiter = isDev ? passThrough : rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many admin auth attempts, please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authLimiter, paymentLimiter, apiLimiter, adminLimiter };

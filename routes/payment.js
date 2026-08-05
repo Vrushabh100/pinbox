@@ -107,10 +107,11 @@ router.post('/create-order', async (req, res, next) => {
 });
 
 // POST /api/payment/verify
-// Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan? }
+// Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+// NOTE: plan is intentionally NOT read from the request body — derived from order notes instead.
 router.post('/verify', async (req, res, next) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ error: 'Missing required payment fields.' });
@@ -135,9 +136,27 @@ router.post('/verify', async (req, res, next) => {
       return res.status(400).json({ error: 'Payment verification failed. Signature mismatch.' });
     }
 
-    // Normalize plan name to Mongoose enum values: free | pro | premium
+    // ── SECURITY: derive plan from server-side Razorpay order notes ────────────
+    // NEVER trust the client-supplied plan field. A user who paid ₹299 for 'pro'
+    // could replay this request with plan:'premium' to get the ₹599 tier free.
+    // We fetch the order by ID from Razorpay; the plan was embedded in notes at
+    // order-creation time (create-order sets notes.plan) and cannot be tampered.
+    const razorpay = getRazorpayInstance();
+    let serverPlan;
+    try {
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      serverPlan = order?.notes?.plan;
+    } catch (fetchErr) {
+      console.error('[Razorpay] Could not fetch order to verify plan:', fetchErr.message);
+      return res.status(500).json({ error: 'Could not verify order details. Please contact support.' });
+    }
+
+    if (!serverPlan) {
+      return res.status(400).json({ error: 'Order has no plan information. Please contact support.' });
+    }
+
     const PLAN_MAP = { free: 'free', pro: 'pro', premium: 'premium', max: 'premium' };
-    const selectedPlan = PLAN_MAP[plan] || 'pro';
+    const selectedPlan = PLAN_MAP[serverPlan] || 'pro';
 
     // Upgrade user plan with 30-day expiry
     const user = req.user;

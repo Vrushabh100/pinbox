@@ -110,6 +110,15 @@ module.exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: username, email, mobile, authProvider' });
     }
 
+    // ── SECURITY: strict authProvider allowlist ──────────────────────────────
+    // Only verified providers are permitted. Any other value (e.g. 'manual',
+    // 'github', or an attacker-controlled string) is rejected outright to
+    // prevent unauthenticated takeover of an existing account.
+    const ALLOWED_PROVIDERS = ['google', 'referral'];
+    if (!ALLOWED_PROVIDERS.includes(authProvider)) {
+      return res.status(400).json({ error: 'Invalid auth provider. Only Google and Referral registration is supported.' });
+    }
+
     // Verify Google token if registering via Google
     if (authProvider === 'google') {
       if (!idToken) return res.status(400).json({ error: 'Google ID token required for Google registration' });
@@ -144,6 +153,7 @@ module.exports.register = async (req, res) => {
     let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
+      // New user — create fresh record
       user = new User({
         username,
         fullName: fullName || '',
@@ -158,6 +168,16 @@ module.exports.register = async (req, res) => {
         lastActive: new Date(),
       });
     } else {
+      // Existing user — only allow update when identity is proven.
+      // For Google, the idToken was already verified above and the email
+      // matched, so we can safely update profile fields.
+      // For referral, no pre-existing account should exist (treat as new).
+      if (authProvider === 'referral') {
+        // Referral codes are one-time use for new accounts; block if email
+        // already exists to prevent referral-code-based account hijacking.
+        return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
+      }
+      // authProvider === 'google' — identity confirmed via idToken above
       user.username = username;
       if (fullName) user.fullName = fullName;
       user.mobile = process.env.ENCRYPTION_KEY ? encrypt(mobile) : mobile;
